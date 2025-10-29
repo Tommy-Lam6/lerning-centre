@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SmartEdu 學生專區 - 課程房間</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Word docx support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <!-- PDF support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+      .message-container {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .material-card {
+        transition: all 0.3s ease;
+      }
+      .material-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+      .progress-bar {
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        background-color: #e5e7eb;
+      }
+      .progress-fill {
+        height: 100%;
+        transition: width 0.5s ease;
+      }
+      .typing-indicator {
+        display: none;
+      }
+      .typing-indicator.active {
+        display: block;
+      }
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+      }
+      .notification.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .notification.success {
+        background-color: #10b981;
+      }
+      .notification.error {
+        background-color: #ef4444;
+      }
+      .notification.info {
+        background-color: #3b82f6;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 font-sans">
+    <!-- Navbar -->
+    <header
+      class="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-4 flex justify-between items-center shadow-lg"
+    >
+      <div class="flex items-center space-x-4">
+        <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+          <span class="text-xl">📚</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-wide" id="courseTitle">
+            SmartEdu 學生專區
+          </h1>
+          <span class="text-sm text-blue-200" id="teacherName"></span>
+        </div>
+      </div>
+      <nav class="flex space-x-6 text-sm">
+        <button
+          onclick="showSection('lesson')"
+          class="px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <i class="fas fa-book mr-2"></i>上堂專區
+        </button>
+        <button
+          onclick="showSection('study')"
+          class="px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <i class="fas fa-pencil-alt mr-2"></i>學習專區
+        </button>
+        <button
+          onclick="showSection('review')"
+          class="px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <i class="fas fa-video mr-2"></i>課堂重溫
+        </button>
+        <button
+          onclick="showSection('document')"
+          class="px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <i class="fas fa-file-alt mr-2"></i>文件處理
+        </button>
+        <button
+          onclick="showSection('chat')"
+          class="px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        >
+          <i class="fas fa-comments mr-2"></i>互動聊天室
+        </button>
+      </nav>
+      <div class="flex items-center space-x-4">
+        <span id="userDisplay">👩🏻‍🎓 載入中...</span>
+        <button
+          onclick="logout()"
+          class="bg-red-500 px-3 py-2 rounded hover:bg-red-600 transition-colors"
+        >
+          登出
+        </button>
+        <button
+          onclick="goBack()"
+          class="bg-gray-500 px-3 py-2 rounded hover:bg-gray-600 transition-colors"
+        >
+          返回課程列表
+        </button>
+      </div>
+    </header>
+
+    <!-- Notification Area -->
+    <div id="notificationArea"></div>
+
+    <!-- Main -->
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
+      <!-- 上堂專區 -->
+      <div id="lesson" class="section active">
+        <h2
+          class="text-3xl font-semibold text-blue-900 mb-6 border-b pb-2 flex items-center"
+        >
+          <i class="fas fa-book mr-3 text-blue-500"></i>
+          上堂專區
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center">
+              <i class="fas fa-file-alt mr-2"></i>課程教材
+            </h3>
+            <div class="bg-blue-50 p-4 rounded-lg mb-4">
+              <p class="text-sm text-blue-700 flex items-center">
+                <i class="fas fa-info-circle mr-2"></i>
+                老師會在此處上傳課程相關教材，請定期查看更新
+              </p>
+            </div>
+            <ul id="materialsList" class="space-y-3">
+              <li class="text-center py-8 text-gray-500">
+                <div class="text-4xl mb-4">
+                  <i class="fas fa-folder-open"></i>
+                </div>
+                <p>載入教材中...</p>
+              </li>
+            </ul>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center">
+              <i class="fas fa-video mr-2"></i>直播課堂
+            </h3>
+            <div
+              class="aspect-video bg-gray-800 flex items-center justify-center text-white rounded-lg mb-4"
+            >
+              <div class="text-center">
+                <div class="text-5xl mb-4">
+                  <i class="fas fa-play-circle"></i>
+                </div>
+                <p class="text-xl font-medium">直播課堂將於上課時間開始</p>
+                <p class="text-blue-200 mt-2">下次直播: 今日 14:00</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-sign-in-alt mr-2"></i>加入直播
+              </button>
+              <button
+                class="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-volume-up mr-2"></i>測試音訊
+              </button>
+            </div>
+            <div
+              class="mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200"
+            >
+              <p class="text-sm text-yellow-700 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                請提前10分鐘進入直播間測試設備
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 學習專區 -->
+      <div id="study" class="section">
+        <h2
+          class="text-3xl font-semibold text-blue-900 mb-6 border-b pb-2 flex items-center"
+        >
+          <i class="fas fa-pencil-alt mr-3 text-blue-500"></i>
+          學習專區
+        </h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Sidebar -->
+          <div class="lg:w-64 bg-white p-6 rounded-xl shadow-lg space-y-6">
+            <div>
+              <h3
+                class="text-lg font-bold text-blue-800 mb-3 flex items-center"
+              >
+                <i class="fas fa-upload mr-2"></i>上載作業
+              </h3>
+              <div class="mb-3">
+                <select
+                  id="homeworkSelect"
+                  class="w-full border rounded-lg p-2 text-sm mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                >
+                  <option value="">選擇作業</option>
+                </select>
+                <input
+                  type="file"
+                  id="homeworkFile"
+                  class="w-full border rounded-lg p-2 text-sm"
+                />
+              </div>
+              <button
+                onclick="uploadHomework()"
+                class="w-full bg-blue-700 text-white px-3 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-cloud-upload-alt mr-2"></i>上載作業
+              </button>
+            </div>
+
+            <div class="border-t pt-4">
+              <h3
+                class="text-lg font-bold text-blue-800 mb-3 flex items-center"
+              >
+                <i class="fas fa-chart-line mr-2"></i>學習進度
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span>教材閱讀</span>
+                    <span class="text-green-600 font-medium">75%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill bg-green-500"
+                      style="width: 75%"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span>作業完成</span>
+                    <span class="text-yellow-600 font-medium">50%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill bg-yellow-500"
+                      style="width: 50%"
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span>測驗成績</span>
+                    <span class="text-blue-600 font-medium">85%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill bg-blue-500"
+                      style="width: 85%"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main content -->
+          <div class="flex-1 space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3
+                class="text-xl font-bold text-blue-800 mb-4 flex items-center"
+              >
+                <i class="fas fa-question-circle mr-2"></i>自動生成試題
+              </h3>
+              <p class="text-gray-600 mb-4">
+                系統會根據課程內容生成練習題目，幫助您鞏固知識點
+              </p>
+              <div id="generatedQuestions" class="space-y-4">
+                <div class="p-4 border rounded-lg">
+                  <p class="font-medium mb-2">1. 請解釋本課程的核心概念？</p>
+                  <textarea
+                    class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    rows="3"
+                    placeholder="輸入你的答案..."
+                  ></textarea>
+                </div>
+                <div class="p-4 border rounded-lg">
+                  <p class="font-medium mb-2">2. 請列出三個重要的學習要點？</p>
+                  <textarea
+                    class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    rows="3"
+                    placeholder="輸入你的答案..."
+                  ></textarea>
+                </div>
+              </div>
+              <button
+                class="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              >
+                <i class="fas fa-paper-plane mr-2"></i>提交答案
+              </button>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3
+                class="text-xl font-bold text-blue-800 mb-4 flex items-center"
+              >
+                <i class="fas fa-robot mr-2"></i>AI 學習助手
+              </h3>
+              <textarea
+                id="aiQuestion"
+                class="w-full border rounded-lg p-3 text-sm mb-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                rows="4"
+                placeholder="關於課程的任何問題..."
+              ></textarea>
+              <button
+                onclick="askAI()"
+                class="w-full bg-purple-600 text-white px-3 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-comment mr-2"></i>詢問 AI 助手
+              </button>
+              <div
+                id="aiResponse"
+                class="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200 hidden"
+              >
+                <!-- AI 回答將顯示在這裡 -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 課堂重溫 -->
+      <div id="review" class="section">
+        <h2
+          class="text-3xl font-semibold text-blue-900 mb-6 border-b pb-2 flex items-center"
+        >
+          <i class="fas fa-video mr-3 text-blue-500"></i>
+          課堂重溫
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-4 rounded-xl shadow-lg">
+            <h3 class="text-blue-700 font-semibold mb-2">課程錄影 #1</h3>
+            <div
+              class="aspect-video bg-gray-800 flex items-center justify-center text-white rounded-lg mb-3"
+            >
+              <div class="text-center">
+                <div class="text-4xl mb-2">
+                  <i class="fas fa-play-circle"></i>
+                </div>
+                <p class="text-sm">錄影回放</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">2小時15分鐘</span>
+              <button
+                class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+              >
+                觀看
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-lg">
+            <h3 class="text-blue-700 font-semibold mb-2">課程錄影 #2</h3>
+            <div
+              class="aspect-video bg-gray-800 flex items-center justify-center text-white rounded-lg mb-3"
+            >
+              <div class="text-center">
+                <div class="text-4xl mb-2">
+                  <i class="fas fa-play-circle"></i>
+                </div>
+                <p class="text-sm">錄影回放</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">1小時45分鐘</span>
+              <button
+                class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+              >
+                觀看
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-lg">
+            <h3 class="text-blue-700 font-semibold mb-2">重點筆記</h3>
+            <div
+              class="aspect-video bg-yellow-50 flex items-center justify-center text-yellow-600 rounded-lg border-2 border-yellow-200 mb-3"
+            >
+              <div class="text-center">
+                <div class="text-4xl mb-2">
+                  <i class="fas fa-file-pdf"></i>
+                </div>
+                <p class="text-sm">課程重點摘要</p>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600">PDF 文件</span>
+              <button
+                class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
+              >
+                下載
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文件處理 -->
+      <div id="document" class="section">
+        <h2
+          class="text-3xl font-semibold text-blue-900 mb-6 border-b pb-2 flex items-center"
+        >
+          <i class="fas fa-file-alt mr-3 text-blue-500"></i>
+          文件處理
+        </h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Sidebar -->
+          <div class="lg:w-64 bg-white p-6 rounded-xl shadow-lg space-y-6">
+            <div>
+              <h3
+                class="text-lg font-bold text-blue-800 mb-3 flex items-center"
+              >
+                <i class="fas fa-globe mr-2"></i>選擇語言
+              </h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1"
+                    >來源語言</label
+                  >
+                  <select
+                    id="langFrom"
+                    class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  >
+                    <option value="en">英文</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日文</option>
+                    <option value="ko">韓文</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-700 mb-1"
+                    >目標語言</label
+                  >
+                  <select
+                    id="langTo"
+                    class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  >
+                    <option value="zh">中文</option>
+                    <option value="en">英文</option>
+                    <option value="ja">日文</option>
+                    <option value="ko">韓文</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3
+                class="text-lg font-bold text-blue-800 mb-3 flex items-center"
+              >
+                <i class="fas fa-upload mr-2"></i>上傳文件
+              </h3>
+              <input
+                type="file"
+                id="fileInput"
+                accept=".txt,.docx,.pdf"
+                class="w-full text-sm mb-3"
+              />
+              <button
+                onclick="uploadFile()"
+                class="w-full bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-language mr-2"></i>上載並翻譯檔案
+              </button>
+            </div>
+
+            <div>
+              <button
+                onclick="exportFile()"
+                class="w-full bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-download mr-2"></i>導出文件
+              </button>
+            </div>
+          </div>
+
+          <!-- 翻譯預覽 -->
+          <div class="flex-1 bg-white p-6 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center">
+              <i class="fas fa-eye mr-2"></i>翻譯預覽
+            </h3>
+            <div
+              id="preview"
+              class="space-y-4 text-sm leading-relaxed max-h-96 overflow-y-auto p-4 border rounded-lg"
+            >
+              <div class="text-center py-8 text-gray-400">
+                <div class="text-4xl mb-4">
+                  <i class="fas fa-file-import"></i>
+                </div>
+                <p>請上載 .txt / .docx / .pdf 檔案</p>
+                <p class="text-sm mt-1">然後會在這裡逐行顯示原文與翻譯</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 互動聊天室 -->
+      <div id="chat" class="section">
+        <h2
+          class="text-3xl font-semibold text-blue-900 mb-6 border-b pb-2 flex items-center"
+        >
+          <i class="fas fa-comments mr-3 text-blue-500"></i>
+          互動聊天室
+        </h2>
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 class="font-semibold text-blue-800">課程討論區</h3>
+            <p class="text-sm text-gray-600">與同學和老師交流學習問題</p>
+          </div>
+
+          <div class="p-4 h-96 overflow-y-auto border-b" id="chatMessages">
+            <div class="text-center text-gray-500 py-8">
+              <div class="text-4xl mb-2">💬</div>
+              <p>開始與課程成員對話</p>
+            </div>
+          </div>
+
+          <div class="p-4">
+            <div
+              class="typing-indicator mb-2 text-sm text-gray-500"
+              id="typingIndicator"
+            >
+              <span id="typingUser">某人</span> 正在輸入...
+            </div>
+            <div class="flex space-x-2">
+              <input
+                type="text"
+                id="messageInput"
+                placeholder="輸入訊息..."
+                class="flex-1 border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              />
+              <button
+                onclick="sendMessage()"
+                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <i class="fas fa-paper-plane mr-2"></i>發送
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Script -->
+    <script>
+      // 全局变量
+      let currentRoomData = null;
+      let currentUser = null;
+      let currentCourseId = null;
+      let homeworkList = [];
+
+      // 初始化页面
+      async function init() {
+        try {
+          console.log("开始初始化页面...");
+
+          // 从URL获取课程ID
+          const pathSegments = window.location.pathname.split("/");
+          currentCourseId = pathSegments[pathSegments.length - 1];
+
+          if (!currentCourseId || isNaN(currentCourseId)) {
+            showNotification("无效的课程ID", "error");
+            return;
+          }
+
+          console.log("课程ID:", currentCourseId);
+
+          // 检查用户登录状态
+          const authResponse = await fetch("/check-auth", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          if (!authResponse.ok) {
+            throw new Error("用户未登录");
+          }
+
+          const authData = await authResponse.json();
+
+          if (!authData.success) {
+            window.location.href = "/";
+            return;
+          }
+
+          currentUser = authData.user;
+          document.getElementById("userDisplay").textContent =
+            "👩🏻‍🎓 " + currentUser.username;
+
+          console.log("用户信息:", currentUser);
+
+          // 从服务端获取房间数据
+          const response = await fetch(`/room/${currentCourseId}`, {
+            method: "GET",
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `获取房间数据失败: ${response.status} - ${errorText}`
+            );
+          }
+
+          const apiResponse = await response.json();
+
+          if (!apiResponse.success) {
+            throw new Error(apiResponse.message);
+          }
+
+          currentRoomData = apiResponse;
+          console.log("房间数据:", currentRoomData);
+
+          // 使用真实数据初始化页面
+          document.getElementById("courseTitle").textContent =
+            currentRoomData.room.course_name;
+          document.getElementById("teacherName").textContent =
+            "教師: " + currentRoomData.room.teacher_name;
+
+          // 加载教材
+          loadCourseMaterials(currentRoomData.materials);
+
+          // 加载消息列表
+          loadMessages(currentRoomData.messages);
+
+          // 加载作业列表
+          await loadHomeworkList();
+
+          // 显示默认区域
+          showSection("lesson");
+
+          console.log("页面初始化完成");
+        } catch (error) {
+          console.error("初始化失败:", error);
+          showNotification("加载课程数据失败: " + error.message, "error");
+        }
+      }
+
+      function showSection(id) {
+        try {
+          document.querySelectorAll(".section").forEach((sec) => {
+            sec.classList.remove("active");
+          });
+
+          const targetSection = document.getElementById(id);
+          if (targetSection) {
+            targetSection.classList.add("active");
+          }
+
+          // 更新导航按钮状态
+          document.querySelectorAll("nav button").forEach((btn) => {
+            btn.classList.remove("bg-blue-700");
+          });
+
+          // 安全地添加活动类
+          if (event && event.target) {
+            event.target.classList.add("bg-blue-700");
+          }
+        } catch (error) {
+          console.error("切换区域错误:", error);
+        }
+      }
+
+      function logout() {
+        fetch("/logout", {
+          method: "POST",
+          credentials: "include",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showNotification(data.message || "已成功登出", "success");
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1500);
+          })
+          .catch((err) => {
+            console.error("登出错误:", err);
+            showNotification("登出失败", "error");
+          });
+      }
+
+      function goBack() {
+        window.location.href = "/student";
+      }
+
+      // 作业提交功能
+      async function uploadHomework() {
+        const homeworkSelect = document.getElementById("homeworkSelect");
+        const fileInput = document.getElementById("homeworkFile");
+
+        if (!homeworkSelect || !homeworkSelect.value) {
+          showNotification("請選擇作業", "error");
+          return;
+        }
+
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+          showNotification("請選擇要上載的作業文件", "error");
+          return;
+        }
+
+        try {
+          // 创建FormData对象
+          const formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+
+          // 发送请求到服务端
+          const response = await fetch(
+            `/room/${currentRoomData.room.room_id}/homework/${homeworkSelect.value}/submit`,
+            {
+              method: "POST",
+              body: formData,
+              credentials: "include",
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`服务器错误: ${response.status} ${errorText}`);
+          }
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message);
+          }
+
+          showNotification("作業上載成功！", "success");
+          fileInput.value = "";
+        } catch (error) {
+          console.error("提交作业错误:", error);
+          showNotification("作業提交失敗: " + error.message, "error");
+        }
+      }
+
+      // 加载作业列表
+      async function loadHomeworkList() {
+        try {
+          if (!currentRoomData || !currentRoomData.room) {
+            console.error("房间数据未加载");
+            return;
+          }
+
+          const response = await fetch(
+            `/room/${currentRoomData.room.room_id}/homework`,
+            {
+              method: "GET",
+              credentials: "include",
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("获取作业列表失败");
+          }
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message);
+          }
+
+          homeworkList = result.homework;
+          const homeworkSelect = document.getElementById("homeworkSelect");
+
+          if (!homeworkSelect) {
+            console.error("作业选择元素未找到");
+            return;
+          }
+
+          // 清空选项
+          homeworkSelect.innerHTML = '<option value="">選擇作業</option>';
+
+          // 添加作业选项
+          homeworkList.forEach((homework) => {
+            const option = document.createElement("option");
+            option.value = homework.id;
+            option.textContent = `${homework.title} (截止: ${new Date(
+              homework.deadline
+            ).toLocaleDateString()})`;
+            homeworkSelect.appendChild(option);
+          });
+        } catch (error) {
+          console.error("加载作业列表错误:", error);
+          showNotification("加载作业列表失败", "error");
+        }
+      }
+
+      function askAI() {
+        const questionInput = document.getElementById("aiQuestion");
+        if (!questionInput) {
+          showNotification("AI问题输入框未找到", "error");
+          return;
+        }
+
+        const question = questionInput.value.trim();
+        if (!question) {
+          showNotification("請輸入問題", "error");
+          return;
+        }
+
+        const responseDiv = document.getElementById("aiResponse");
+        if (!responseDiv) {
+          showNotification("AI响应区域未找到", "error");
+          return;
+        }
+
+        responseDiv.classList.remove("hidden");
+        responseDiv.innerHTML = `
+        <div class="flex items-start space-x-3">
+          <div class="bg-purple-100 p-2 rounded-full">
+            <i class="fas fa-robot text-purple-600"></i>
+          </div>
+          <div class="flex-1">
+            <p class="font-medium text-purple-800">AI 學習助手</p>
+            <p class="text-gray-700 mt-1">這是一個關於 "${question}" 的示範回答。在完整版本中，這裡會顯示AI生成的詳細解答，幫助您更好地理解課程內容。</p>
+            <div class="mt-3 p-2 bg-purple-50 rounded border border-purple-100">
+              <p class="text-xs text-purple-700">提示：您可以詢問具體的概念解釋、練習題幫助或學習建議。</p>
+            </div>
+          </div>
+        </div>
+      `;
+      }
+
+      // 聊天功能
+      async function sendMessage() {
+        const input = document.getElementById("messageInput");
+        if (!input) {
+          showNotification("消息输入框未找到", "error");
+          return;
+        }
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        try {
+          // 发送消息到服务端
+          const response = await fetch(
+            `/room/${currentRoomData.room.room_id}/message`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ text: message }),
+              credentials: "include",
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("发送失败");
+          }
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message);
+          }
+
+          const chatMessages = document.getElementById("chatMessages");
+          if (!chatMessages) {
+            showNotification("聊天消息区域未找到", "error");
+            return;
+          }
+
+          if (
+            chatMessages.children[0] &&
+            chatMessages.children[0].classList.contains("text-center")
+          ) {
+            chatMessages.innerHTML = "";
+          }
+
+          // 添加用户消息
+          addMessageToChat(currentUser.username, message, true);
+
+          // 清空输入框
+          input.value = "";
+
+          // 滚动到底部
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (error) {
+          console.error("发送消息错误:", error);
+          showNotification("发送失败: " + error.message, "error");
+        }
+      }
+
+      function addMessageToChat(user, message, isCurrentUser) {
+        const chatMessages = document.getElementById("chatMessages");
+        if (!chatMessages) return;
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `flex mb-4 ${
+          isCurrentUser ? "justify-end" : "justify-start"
+        }`;
+
+        if (!isCurrentUser) {
+          messageDiv.innerHTML = `
+          <div class="flex items-start space-x-2 max-w-xs lg:max-w-md">
+            <div class="bg-gray-100 p-2 rounded-full">
+              <i class="fas fa-user text-gray-600"></i>
+            </div>
+            <div>
+              <div class="bg-gray-200 rounded-lg p-3">
+                <p class="text-sm font-medium text-gray-800">${user}</p>
+                <p class="text-gray-700 mt-1">${message}</p>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">剛剛</p>
+            </div>
+          </div>
+        `;
+        } else {
+          messageDiv.innerHTML = `
+          <div class="bg-blue-100 rounded-lg p-3 max-w-xs lg:max-w-md">
+            <p class="text-sm text-blue-800">${message}</p>
+            <p class="text-xs text-blue-600 text-right mt-1">剛剛</p>
+          </div>
+        `;
+        }
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function loadMessages(messages) {
+        const chatMessages = document.getElementById("chatMessages");
+        if (!chatMessages) return;
+
+        if (messages.length === 0) {
+          return;
+        }
+
+        chatMessages.innerHTML = "";
+
+        messages.forEach((message) => {
+          const isCurrentUser = message.user_id === currentUser.id;
+          addMessageToChat(
+            message.username || "用户",
+            message.text,
+            isCurrentUser
+          );
+        });
+      }
+
+      // 文件翻译功能
+      async function translateText(text, targetLang) {
+        // 模拟翻译功能
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(`[${targetLang.toUpperCase()} 翻譯] ${text}`);
+          }, 500);
+        });
+      }
+
+      function uploadFile() {
+        const fileInput = document.getElementById("fileInput");
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+          showNotification("⚠️ 請先選擇檔案 (.txt, .docx, .pdf)", "error");
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        // 添加文件类型验证
+        if (!["txt", "docx", "pdf"].includes(ext)) {
+          showNotification(
+            "⚠️ 不支援的檔案格式，請選擇 .txt, .docx 或 .pdf 檔案",
+            "error"
+          );
+          return;
+        }
+
+        try {
+          if (ext === "txt") {
+            readTxt(file);
+          } else if (ext === "docx") {
+            readDocx(file);
+          } else if (ext === "pdf") {
+            readPdf(file);
+          }
+        } catch (error) {
+          console.error("文件处理错误:", error);
+          showNotification("❌ 文件处理失败: " + error.message, "error");
+        }
+      }
+
+      function readTxt(file) {
+        const reader = new FileReader();
+
+        // 添加安全的事件处理
+        reader.onload = function (e) {
+          try {
+            // 添加安全检查
+            if (e && e.target && e.target.result) {
+              processText(e.target.result);
+            } else {
+              showNotification("❌ 读取文本文件失败", "error");
+            }
+          } catch (error) {
+            console.error("读取文本文件错误:", error);
+            showNotification("❌ 读取文本文件时发生错误", "error");
+          }
+        };
+
+        reader.onerror = function () {
+          showNotification("❌ 读取文件时发生错误", "error");
+        };
+
+        try {
+          reader.readAsText(file, "UTF-8");
+        } catch (error) {
+          showNotification("❌ 无法读取文件: " + error.message, "error");
+        }
+      }
+
+      function readDocx(file) {
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+          try {
+            // 添加安全检查
+            if (!event || !event.target) {
+              showNotification("❌ 读取Word文件失败: 无效的事件对象", "error");
+              return;
+            }
+
+            mammoth
+              .extractRawText({ arrayBuffer: event.target.result })
+              .then((result) => {
+                if (result && result.value) {
+                  processText(result.value);
+                } else {
+                  showNotification("❌ Word文件内容为空", "error");
+                }
+              })
+              .catch((err) => {
+                console.error("Word文件读取错误:", err);
+                showNotification(
+                  "❌ 讀取 Word 檔失敗: " + err.message,
+                  "error"
+                );
+              });
+          } catch (error) {
+            console.error("处理Word文件错误:", error);
+            showNotification("❌ 处理Word文件时发生错误", "error");
+          }
+        };
+
+        reader.onerror = function () {
+          showNotification("❌ 读取Word文件失败", "error");
+        };
+
+        try {
+          reader.readAsArrayBuffer(file);
+        } catch (error) {
+          showNotification("❌ 无法读取Word文件: " + error.message, "error");
+        }
+      }
+
+      async function readPdf(file) {
+        const reader = new FileReader();
+
+        reader.onload = async function (e) {
+          try {
+            // 添加安全检查
+            if (!e || !e.target) {
+              throw new Error("无效的事件对象");
+            }
+
+            const typedarray = new Uint8Array(e.target.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let textContent = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              textContent +=
+                content.items.map((item) => item.str).join(" ") + "\n";
+            }
+
+            processText(textContent);
+          } catch (err) {
+            console.error("PDF文件读取错误:", err);
+            showNotification("❌ 讀取 PDF 檔失敗: " + err.message, "error");
+          }
+        };
+
+        reader.onerror = function () {
+          showNotification("❌ 读取PDF文件失败", "error");
+        };
+
+        try {
+          reader.readAsArrayBuffer(file);
+        } catch (error) {
+          showNotification("❌ 无法读取PDF文件: " + error.message, "error");
+        }
+      }
+
+      async function processText(text) {
+        const preview = document.getElementById("preview");
+
+        // 添加安全检查
+        if (!preview) {
+          console.error("预览元素未找到");
+          showNotification("❌ 预览区域未找到", "error");
+          return;
+        }
+
+        preview.innerHTML =
+          "<div class='text-center py-4'><div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto'></div><p class='text-gray-500 mt-2'>正在處理文件...</p></div>";
+
+        if (!text) {
+          preview.innerHTML =
+            "<p class='text-red-500 text-center py-4'>⚠️ 檔案沒有內容</p>";
+          return;
+        }
+
+        const langTo = document.getElementById("langTo");
+        if (!langTo) {
+          showNotification("❌ 语言选择元素未找到", "error");
+          return;
+        }
+
+        const targetLang = langTo.value;
+        const lines = text.split("\n").filter((line) => line.trim() !== "");
+        let processedLines = 0;
+
+        preview.innerHTML = "";
+
+        // 限制处理的行数，避免性能问题
+        const maxLines = Math.min(lines.length, 100);
+
+        for (let i = 0; i < maxLines; i++) {
+          const line = lines[i];
+          if (line.trim() !== "") {
+            try {
+              const translated = await translateText(line, targetLang);
+              const div = document.createElement("div");
+              div.className = "p-3 border-b border-gray-200";
+              div.innerHTML = `
+              <div class="mb-2">
+                <span class="text-xs text-gray-500">原文:</span>
+                <p class="text-gray-800">${line}</p>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500">翻譯:</span>
+                <p class="text-blue-700">${translated}</p>
+              </div>
+            `;
+              preview.appendChild(div);
+              processedLines++;
+
+              // 更新进度
+              if (processedLines % 5 === 0) {
+                preview.scrollTop = preview.scrollHeight;
+              }
+            } catch (error) {
+              console.error("翻译错误:", error);
+              // 继续处理下一行
+            }
+          }
+        }
+
+        if (processedLines === 0) {
+          preview.innerHTML =
+            "<p class='text-red-500 text-center py-4'>⚠️ 檔案沒有可處理的內容</p>";
+        } else {
+          showNotification(`✅ 已成功處理 ${processedLines} 行文本`, "success");
+
+          // 如果有限制行数，显示提示
+          if (lines.length > maxLines) {
+            const warningDiv = document.createElement("div");
+            warningDiv.className =
+              "p-3 bg-yellow-50 border border-yellow-200 rounded-lg mt-4";
+            warningDiv.innerHTML = `
+            <p class="text-yellow-700 text-sm">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              文件较大，只显示了前 ${maxLines} 行内容
+            </p>
+          `;
+            preview.appendChild(warningDiv);
+          }
+        }
+      }
+
+      function exportFile() {
+        const preview = document.getElementById("preview");
+        if (!preview) {
+          showNotification("❌ 预览区域未找到", "error");
+          return;
+        }
+
+        const content = preview.innerText;
+        if (!content.trim()) {
+          showNotification("⚠️ 沒有翻譯結果可導出", "error");
+          return;
+        }
+
+        try {
+          const blob = new Blob([content], {
+            type: "text/plain;charset=utf-8",
+          });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "translation.txt";
+          link.click();
+          showNotification("✅ 文件已導出", "success");
+        } catch (error) {
+          console.error("导出文件错误:", error);
+          showNotification("❌ 导出文件失败: " + error.message, "error");
+        }
+      }
+
+      function loadCourseMaterials(materials) {
+        const materialsList = document.getElementById("materialsList");
+        if (!materialsList) {
+          console.error("教材列表元素未找到");
+          return;
+        }
+
+        materialsList.innerHTML = "";
+
+        if (!materials || materials.length === 0) {
+          materialsList.innerHTML = `
+          <li class="text-center py-8 text-gray-500">
+            <div class="text-4xl mb-4">
+              <i class="fas fa-folder-open"></i>
+            </div>
+            <p>暫無教材</p>
+            <p class="text-sm mt-1">老師會在此處上傳課程教材</p>
+          </li>
+        `;
+          return;
+        }
+
+        materials.forEach((material) => {
+          const li = document.createElement("li");
+          li.className =
+            "material-card bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-center";
+          li.innerHTML = `
+          <div class="flex items-center">
+            <div class="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3">
+              <i class="fas fa-file-${
+                material.type === "視頻"
+                  ? "video"
+                  : material.type === "練習題"
+                  ? "word"
+                  : "pdf"
+              }"></i>
+            </div>
+            <div>
+              <h4 class="font-medium text-gray-800">${material.title}</h4>
+              <p class="text-sm text-gray-500">${material.type} • ${new Date(
+            material.created_at
+          ).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="previewMaterial('${material.url}', '${
+            material.type
+          }')" 
+                    class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors">
+              <i class="fas fa-eye"></i>
+            </button>
+            <a href="${material.url}" download 
+               class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors">
+              <i class="fas fa-download"></i>
+            </a>
+          </div>
+        `;
+          materialsList.appendChild(li);
+        });
+      }
+
+      function previewMaterial(url, type) {
+        if (!url) {
+          showNotification("❌ 文件鏈接無效", "error");
+          return;
+        }
+
+        // 在新窗口中打開文件進行預覽
+        window.open(url, "_blank");
+
+        showNotification(`正在預覽: ${type} 文件`, "info");
+      }
+
+      function showNotification(message, type) {
+        const notificationArea = document.getElementById("notificationArea");
+        if (!notificationArea) {
+          console.error("通知区域未找到");
+          return;
+        }
+
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        notificationArea.appendChild(notification);
+
+        // 显示通知
+        setTimeout(() => {
+          notification.classList.add("show");
+        }, 10);
+
+        // 隐藏通知
+        setTimeout(() => {
+          notification.classList.remove("show");
+          setTimeout(() => {
+            if (notificationArea.contains(notification)) {
+              notificationArea.removeChild(notification);
+            }
+          }, 300);
+        }, 3000);
+      }
+
+      // 頁面載入時立即檢查登入狀態
+      window.addEventListener("load", function () {
+        fetch("/check-auth", {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+          credentials: "include",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.success) {
+              // 未登入，立即顯示錯誤訊息
+              document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+              <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+                <h1 style="color: #ef4444; margin-bottom: 1rem;">⚠️ 未授權訪問</h1>
+                <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">${JSON.stringify(
+                  data,
+                  null,
+                  2
+                )}</pre>
+                <p style="margin-top: 1rem; color: #6b7280;">
+                  <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+                </p>
+              </div>
+            </div>
+          `;
+              return;
+            }
+            // 權限驗證通過，初始化學生房間頁面
+            initStudentRoom();
+          })
+          .catch((error) => {
+            console.error("認證檢查錯誤:", error);
+            document.body.innerHTML = `
+          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+            <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+              <h1 style="color: #ef4444; margin-bottom: 1rem;">❌ 連接錯誤</h1>
+              <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">{"success": false, "message": "請先登入系統"}</pre>
+              <p style="margin-top: 1rem; color: #6b7280;">
+                <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+              </p>
+            </div>
+          </div>
+        `;
+          });
+      });
+
+      // 防止使用瀏覽器返回按鈕
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
+
+      // 初始化學生房間頁面的函數
+      function initStudentRoom() {
+        console.log("DOM加载完成，开始初始化...");
+        init();
+      }
+
+      // 初始化页面
+      document.addEventListener("DOMContentLoaded", function () {
+        // DOMContentLoaded 時不直接初始化，等待 load 事件的權限檢查
+        console.log("📄 DOM 內容已載入，等待權限驗證...");
+      });
+    </script>
+  </body>
+</html>

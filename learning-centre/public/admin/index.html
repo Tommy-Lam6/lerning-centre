@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SmartEdu 管理員專區</title>
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* === SmartEdu 全站共用樣式 === */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Noto Sans HK", "Microsoft JhengHei", -apple-system,
+          BlinkMacSystemFont, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #2d3748;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        color: #2d3748;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      h2 {
+        font-size: 2rem;
+        color: #4a5568;
+      }
+
+      h3 {
+        font-size: 1.5rem;
+        color: #4a5568;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        gap: 0.5rem;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-secondary {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+
+      .btn-secondary:hover {
+        background: #cbd5e0;
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #fc8181, #f56565);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 101, 101, 0.3);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #68d391, #48bb78);
+        color: white;
+      }
+
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(72, 187, 120, 0.3);
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #4a5568;
+      }
+
+      .form-input,
+      .form-select,
+      .form-textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+      }
+
+      .form-input:focus,
+      .form-select:focus,
+      .form-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .table-container {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table th {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .table tr:hover {
+        background: #f7fafc;
+      }
+
+      .table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .navbar {
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 1rem 2rem;
+        border-radius: 0 0 20px 20px;
+        margin-bottom: 2rem;
+      }
+
+      .sidebar {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        height: fit-content;
+      }
+
+      .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .sidebar-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        color: #4a5568;
+        text-decoration: none;
+        gap: 0.75rem;
+      }
+
+      .sidebar-item:hover {
+        background: #f7fafc;
+        transform: translateX(5px);
+      }
+
+      .sidebar-item.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+      }
+
+      .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        color: #718096;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .progress-bar {
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        height: 8px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 10px;
+        transition: width 0.5s ease;
+      }
+
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .notification.show {
+        transform: translateX(0);
+      }
+
+      .notification.success {
+        background: linear-gradient(135deg, #68d391, #48bb78);
+      }
+
+      .notification.error {
+        background: linear-gradient(135deg, #fc8181, #f56565);
+      }
+
+      .notification.warning {
+        background: linear-gradient(135deg, #f6e05e, #ecc94b);
+      }
+
+      .notification.info {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e2e8f0;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .loading-text {
+        margin-top: 1rem;
+        color: #4a5568;
+        font-weight: 600;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none;
+      }
+      .smooth-transition {
+        transition: all 0.3s ease;
+      }
+      .hover-lift:hover {
+        transform: translateY(-3px);
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+        .card {
+          padding: 1.5rem;
+        }
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+        .navbar {
+          padding: 1rem;
+        }
+        h1 {
+          font-size: 2rem;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+    <script>
+      // 防止頁面被緩存
+      window.onpageshow = function (event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      };
+
+      // 檢查登入狀態和權限
+      function checkAuth() {
+        fetch("/check-auth", {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.success) {
+              showNotification("請先登入！", "warning");
+              setTimeout(() => {
+                window.location.href = "/index.html";
+              }, 1500);
+              return;
+            }
+            if (data.user.role !== "admin") {
+              showNotification("權限不足！只有管理員可以訪問此頁面。", "error");
+              setTimeout(() => {
+                window.location.href = "/index.html";
+              }, 1500);
+              return;
+            }
+            updateUserDisplay(data.user.username, data.user.role);
+          })
+          .catch((error) => {
+            console.error("檢查登入狀態時出錯:", error);
+            showNotification("連線錯誤，請重新登入", "error");
+            setTimeout(() => {
+              window.location.href = "/index.html";
+            }, 1500);
+          });
+      }
+
+      // 更新用戶顯示
+      function updateUserDisplay(username, role) {
+        const userElement = document.querySelector(
+          ".flex.items-center.space-x-4 span"
+        );
+        if (userElement) {
+          let emoji = "👤";
+          if (role === "student") emoji = "👩🏻‍🎓";
+          else if (role === "teacher") emoji = "👨🏻‍🏫";
+          else if (role === "admin") emoji = "🧑‍💼";
+          userElement.textContent = emoji + " " + username + " | 管理員";
+        }
+      }
+
+      // 登出功能
+      function logout() {
+        showConfirm("確定要登出嗎？", function () {
+          fetch("/logout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showNotification("已成功登出", "success");
+                // 清除會話儲存並重定向
+                sessionStorage.clear();
+                localStorage.clear();
+                // 使用 replace 防止返回
+                setTimeout(() => {
+                  window.location.replace("/index.html");
+                }, 1000);
+              } else {
+                showNotification("登出失敗，請重試", "error");
+              }
+            })
+            .catch((error) => {
+              console.error("登出錯誤:", error);
+              window.location.replace("/index.html");
+            });
+        });
+      }
+
+      // 頁面加載時立即檢查
+      checkAuth();
+      // 定期檢查登入狀態（每30秒）
+      setInterval(checkAuth, 30000);
+    </script>
+  </head>
+  <body class="bg-gray-50 font-sans text-gray-800">
+    <!-- Navbar -->
+    <header class="navbar">
+      <h1 class="text-xl font-bold tracking-wide">SmartEdu 管理員專區</h1>
+      <div class="flex items-center space-x-4">
+        <span>🧑‍💼 管理員</span>
+        <button onclick="logout()" class="btn btn-danger">登出</button>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="container">
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <nav class="sidebar-nav">
+            <button
+              onclick="showSection('user-management')"
+              class="sidebar-item active"
+            >
+              <span>👥</span> 用戶管理
+            </button>
+            <button
+              onclick="showSection('course-management')"
+              class="sidebar-item"
+            >
+              <span>📚</span> 課程管理
+            </button>
+            <button
+              onclick="showSection('system-monitoring')"
+              class="sidebar-item"
+            >
+              <span>📊</span> 系統監測
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+          <!-- 用戶管理區塊 -->
+          <div id="user-management" class="section card">
+            <h2 class="text-2xl font-bold text-blue-800 mb-6 flex items-center">
+              <span class="mr-2">👥</span> 用戶管理
+            </h2>
+
+            <!-- 用戶統計卡片 -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-number" id="totalUsers">0</div>
+                <div class="stat-label">總用戶數</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number" id="teacherCount">0</div>
+                <div class="stat-label">教師人數</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number" id="studentCount">0</div>
+                <div class="stat-label">學生人數</div>
+              </div>
+            </div>
+
+            <!-- 搜尋功能 -->
+            <div class="card mb-6">
+              <h3
+                class="text-lg font-bold text-blue-800 mb-4 flex items-center"
+              >
+                <span class="mr-2">🔍</span> 搜尋用戶
+              </h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <!-- 關鍵字搜尋 -->
+                <div class="md:col-span-2">
+                  <input
+                    type="text"
+                    id="searchKeyword"
+                    placeholder="搜尋用戶名、ID..."
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- 角色篩選 -->
+                <div>
+                  <select id="searchRole" class="form-select">
+                    <option value="">所有角色</option>
+                    <option value="student">學生</option>
+                    <option value="teacher">教師</option>
+                    <option value="admin">管理員</option>
+                  </select>
+                </div>
+
+                <!-- 搜尋按鈕 -->
+                <div class="flex space-x-2">
+                  <button id="searchBtn" class="btn btn-primary flex-1">
+                    <span>🔍</span> 搜尋
+                  </button>
+                  <button
+                    id="clearSearch"
+                    class="btn btn-secondary"
+                    title="清除搜尋"
+                  >
+                    <span>🗑️</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 搜尋結果統計 -->
+              <div
+                id="searchStats"
+                class="hidden bg-blue-50 border border-blue-200 rounded-lg p-3"
+              >
+                <div class="flex justify-between items-center">
+                  <div>
+                    <span class="text-blue-800 font-semibold">搜尋結果：</span>
+                    <span id="resultCount" class="text-blue-600">0</span> 個用戶
+                    <span
+                      id="searchCriteria"
+                      class="text-blue-600 text-sm ml-2"
+                    ></span>
+                  </div>
+                  <button
+                    id="showAllUsers"
+                    class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    顯示所有用戶
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <!-- Add User Form -->
+              <form
+                id="addUserForm"
+                class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
+              >
+                <input
+                  type="text"
+                  id="username"
+                  placeholder="帳號名稱"
+                  class="form-input"
+                  required
+                />
+                <input
+                  type="password"
+                  id="password"
+                  placeholder="密碼"
+                  class="form-input"
+                  required
+                />
+                <select id="role" class="form-select">
+                  <option value="student">學生</option>
+                  <option value="teacher">教師</option>
+                  <option value="admin">管理員</option>
+                </select>
+                <button type="submit" class="btn btn-primary">
+                  <span>➕</span> 新增用戶
+                </button>
+              </form>
+
+              <!-- User Table -->
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>帳號</th>
+                      <th>角色</th>
+                      <th class="w-48">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 課程管理區塊 -->
+          <div id="course-management" class="section card hidden">
+            <h2 class="text-2xl font-bold text-blue-800 mb-6 flex items-center">
+              <span class="mr-2">📚</span> 課程管理
+            </h2>
+
+            <!-- 課程統計 -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-number" id="totalCourses">0</div>
+                <div class="stat-label">總課程數</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number" id="activeCourses">0</div>
+                <div class="stat-label">活躍課程</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number" id="totalTeachers">0</div>
+                <div class="stat-label">教師人數</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number" id="totalEnrollments">0</div>
+                <div class="stat-label">總選課數</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>課程ID</th>
+                      <th>課程名稱</th>
+                      <th>教師</th>
+                      <th>學生人數</th>
+                      <th>創建時間</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="courseList"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 系統監測區塊 -->
+          <div id="system-monitoring" class="section card hidden">
+            <h2 class="text-2xl font-bold text-blue-800 mb-6 flex items-center">
+              <span class="mr-2">📊</span> 系統監測
+            </h2>
+
+            <!-- 系統狀態卡片 -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-lg font-bold text-green-800">
+                      伺服器狀態
+                    </div>
+                    <div class="text-green-600 text-sm" id="serverStatus">
+                      運行中
+                    </div>
+                  </div>
+                  <div class="text-2xl">🟢</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-lg font-bold text-blue-800">
+                      資料庫狀態
+                    </div>
+                    <div class="text-blue-600 text-sm" id="databaseStatus">
+                      已連接
+                    </div>
+                  </div>
+                  <div class="text-2xl">🔵</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-lg font-bold text-purple-800">
+                      運行時間
+                    </div>
+                    <div class="text-purple-600 text-sm" id="uptime">
+                      0 天 0 時 0 分
+                    </div>
+                  </div>
+                  <div class="text-2xl">⏱️</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 系統資訊 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="card">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">系統資源</h3>
+                <div class="space-y-3">
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>記憶體使用</span>
+                      <span id="memoryUsage">0 MB</span>
+                    </div>
+                    <div class="progress-bar">
+                      <div
+                        id="memoryBar"
+                        class="progress-fill"
+                        style="width: 0%"
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>CPU 使用率</span>
+                      <span id="cpuUsage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                      <div
+                        id="cpuBar"
+                        class="progress-fill"
+                        style="width: 0%"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">即時數據</h3>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span>在線用戶</span>
+                    <span id="onlineUsers">0</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>活躍課程</span>
+                    <span id="activeCoursesCount">0</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>今日消息</span>
+                    <span id="todayMessages">0</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>系統版本</span>
+                    <span id="systemVersion">SmartEdu v1.0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Modal for Edit User -->
+    <div
+      id="editModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96 smooth-transition">
+        <h3 class="text-xl font-semibold mb-4 text-blue-700 flex items-center">
+          <span class="mr-2">✏️</span> 編輯用戶
+        </h3>
+        <input type="hidden" id="editUserId" />
+        <div class="space-y-3">
+          <input
+            type="text"
+            id="editUsername"
+            class="form-input"
+            placeholder="帳號名稱"
+            required
+          />
+          <input
+            type="password"
+            id="editPassword"
+            class="form-input"
+            placeholder="密碼 (如不改可留空)"
+          />
+          <select id="editRole" class="form-select">
+            <option value="student">學生</option>
+            <option value="teacher">教師</option>
+            <option value="admin">管理員</option>
+          </select>
+        </div>
+        <div class="mt-6 flex justify-end space-x-3">
+          <button id="cancelEdit" class="btn btn-secondary">取消</button>
+          <button id="saveEdit" class="btn btn-success">儲存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加載動畫 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-spinner"></div>
+      <div class="loading-text" id="loadingText">載入中...</div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notificationContainer"></div>
+
+    <script>
+      const apiUrl = window.location.origin;
+
+      // === 搜尋功能變數 ===
+      let currentSearch = {
+        keyword: "",
+        role: "",
+        page: 1,
+        limit: 50,
+        isSearching: false,
+      };
+
+      // === 通用工具函數 ===
+      function showLoading(text = "載入中...") {
+        const overlay = document.getElementById("loadingOverlay");
+        const loadingText = document.getElementById("loadingText");
+        if (overlay && loadingText) {
+          loadingText.textContent = text;
+          overlay.classList.remove("hidden");
+        }
+      }
+
+      function hideLoading() {
+        const overlay = document.getElementById("loadingOverlay");
+        if (overlay) {
+          overlay.classList.add("hidden");
+        }
+      }
+
+      function showNotification(message, type = "info", duration = 3000) {
+        const container = document.getElementById("notificationContainer");
+        if (!container) return;
+
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+
+        let icon = "ℹ️";
+        switch (type) {
+          case "success":
+            icon = "✅";
+            break;
+          case "error":
+            icon = "❌";
+            break;
+          case "warning":
+            icon = "⚠️";
+            break;
+          case "info":
+            icon = "ℹ️";
+            break;
+        }
+
+        notification.innerHTML = `
+        <div class="flex items-center">
+          <span class="text-lg mr-2">${icon}</span>
+          <span>${message}</span>
+        </div>
+      `;
+
+        container.appendChild(notification);
+
+        setTimeout(() => {
+          notification.classList.add("show");
+        }, 100);
+
+        setTimeout(() => {
+          notification.classList.remove("show");
+          setTimeout(() => {
+            if (container.contains(notification)) {
+              container.removeChild(notification);
+            }
+          }, 300);
+        }, duration);
+      }
+
+      function showConfirm(message, confirmCallback, cancelCallback = null) {
+        if (confirm(message)) {
+          confirmCallback();
+        } else if (cancelCallback) {
+          cancelCallback();
+        }
+      }
+
+      // === 搜尋功能 ===
+
+      // === 初始化搜尋功能 ===
+      function initSearch() {
+        const searchInput = document.getElementById("searchKeyword");
+        const roleFilter = document.getElementById("searchRole");
+        const searchBtn = document.getElementById("searchBtn");
+        const clearBtn = document.getElementById("clearSearch");
+        const showAllBtn = document.getElementById("showAllUsers");
+
+        // 即時搜尋（防抖）
+        let searchTimeout;
+        searchInput.addEventListener("input", (e) => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            currentSearch.keyword = e.target.value;
+            currentSearch.page = 1;
+            if (e.target.value.trim() !== "" || currentSearch.role !== "") {
+              performSearch();
+            }
+          }, 800);
+        });
+
+        // 角色篩選
+        roleFilter.addEventListener("change", (e) => {
+          currentSearch.role = e.target.value;
+          currentSearch.page = 1;
+          if (currentSearch.keyword !== "" || e.target.value !== "") {
+            performSearch();
+          }
+        });
+
+        // 搜尋按鈕
+        searchBtn.addEventListener("click", performSearch);
+
+        // 清除搜尋
+        clearBtn.addEventListener("click", () => {
+          searchInput.value = "";
+          roleFilter.value = "";
+          currentSearch.keyword = "";
+          currentSearch.role = "";
+          currentSearch.page = 1;
+          currentSearch.isSearching = false;
+
+          hideSearchStats();
+          loadUsers(); // 重新載入所有用戶
+        });
+
+        // 顯示所有用戶
+        if (showAllBtn) {
+          showAllBtn.addEventListener("click", () => {
+            searchInput.value = "";
+            roleFilter.value = "";
+            currentSearch.keyword = "";
+            currentSearch.role = "";
+            currentSearch.page = 1;
+            currentSearch.isSearching = false;
+
+            hideSearchStats();
+            loadUsers(); // 重新載入所有用戶
+          });
+        }
+
+        // Enter 鍵搜尋
+        searchInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            performSearch();
+          }
+        });
+      }
+
+      // === 執行搜尋 ===
+      async function performSearch() {
+        if (!currentSearch.keyword.trim() && !currentSearch.role) {
+          // 如果沒有搜尋條件，顯示所有用戶
+          currentSearch.isSearching = false;
+          hideSearchStats();
+          loadUsers();
+          return;
+        }
+
+        currentSearch.isSearching = true;
+        showLoading("搜尋用戶中...");
+
+        try {
+          const params = new URLSearchParams();
+          if (currentSearch.keyword)
+            params.append("keyword", currentSearch.keyword);
+          if (currentSearch.role) params.append("role", currentSearch.role);
+          params.append("page", currentSearch.page);
+          params.append("limit", currentSearch.limit);
+
+          console.log(`🔍 發送搜尋請求: /admin/users/search?${params}`);
+
+          const response = await fetch(
+            `${apiUrl}/admin/users/search?${params}`
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+          }
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message || "搜尋失敗");
+          }
+
+          console.log(`✅ 搜尋成功，找到 ${result.total} 個用戶`);
+
+          // 顯示搜尋結果
+          displayUsers(result.users);
+          updateSearchStats(result.total, result.searchParams);
+        } catch (error) {
+          console.error("❌ 搜尋錯誤:", error);
+          showNotification("搜尋失敗: " + error.message, "error");
+
+          // 顯示錯誤信息
+          const tbody = document.getElementById("userList");
+          tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="border px-3 py-2 text-center text-red-500">
+          搜尋失敗: ${error.message}
+        </td>
+      </tr>
+    `;
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // === 更新搜尋統計 ===
+      function updateSearchStats(total, searchParams) {
+        const statsElement = document.getElementById("searchStats");
+        const countElement = document.getElementById("resultCount");
+        const criteriaElement = document.getElementById("searchCriteria");
+
+        if (total >= 0) {
+          statsElement.classList.remove("hidden");
+          countElement.textContent = total;
+
+          // 顯示搜尋條件
+          let criteriaText = "";
+          if (searchParams.keyword) {
+            criteriaText += `關鍵字: "${searchParams.keyword}"`;
+          }
+          if (searchParams.role) {
+            if (criteriaText) criteriaText += "，";
+            const roleDisplay =
+              searchParams.role === "teacher"
+                ? "教師"
+                : searchParams.role === "admin"
+                ? "管理員"
+                : "學生";
+            criteriaText += `角色: ${roleDisplay}`;
+          }
+
+          criteriaElement.textContent = criteriaText ? `(${criteriaText})` : "";
+        }
+      }
+
+      // === 隱藏搜尋統計 ===
+      function hideSearchStats() {
+        const statsElement = document.getElementById("searchStats");
+        statsElement.classList.add("hidden");
+      }
+
+      // === 顯示用戶列表的通用函數 ===
+      function displayUsers(users) {
+        const tbody = document.getElementById("userList");
+        tbody.innerHTML = "";
+
+        if (users.length === 0) {
+          console.log("ℹ️ 沒有用戶數據");
+          tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="border px-3 py-2 text-center text-gray-500">
+          暫無用戶數據
+        </td>
+      </tr>
+    `;
+        } else {
+          console.log(`📊 開始渲染 ${users.length} 個用戶`);
+          users.forEach((u) => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-gray-50 smooth-transition";
+
+            const roleClass =
+              u.role === "teacher" ? "text-blue-600 font-semibold" : "";
+            const roleDisplay =
+              u.role === "teacher"
+                ? "👨🏻‍🏫 教師"
+                : u.role === "admin"
+                ? "🧑‍💼 管理員"
+                : "👩🏻‍🎓 學生";
+
+            tr.innerHTML = `
+        <td class="text-center">${u.id}</td>
+        <td>${u.username}</td>
+        <td class="text-center ${roleClass}">${roleDisplay}</td>
+        <td class="text-center">
+          <button onclick="openEditModal(${u.id}, '${u.username}', '${u.role}')" 
+                  class="text-blue-600 hover:underline hover:text-blue-800 smooth-transition mr-2">編輯</button>
+          <button onclick="deleteUser(${u.id})" 
+                  class="text-red-600 hover:underline hover:text-red-800 smooth-transition">刪除</button>
+        </td>
+      `;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+
+      // 切換區塊顯示
+      function showSection(id) {
+        console.log(`🔄 切換到區塊: ${id}`);
+
+        // 隱藏所有區塊
+        document
+          .querySelectorAll(".section")
+          .forEach((el) => el.classList.add("hidden"));
+
+        // 顯示目標區塊
+        document.getElementById(id).classList.remove("hidden");
+
+        // 根據切換的區塊載入對應數據
+        if (id === "user-management") {
+          console.log("📋 載入用戶管理數據");
+          setTimeout(() => {
+            loadUsers();
+          }, 100);
+        } else if (id === "course-management") {
+          console.log("📚 載入課程管理數據");
+          setTimeout(() => {
+            loadCourses();
+          }, 100);
+        } else if (id === "system-monitoring") {
+          console.log("📊 載入系統監測數據");
+          setTimeout(() => {
+            loadSystemStatus();
+          }, 100);
+        }
+
+        // 更新側邊欄激活狀態
+        document.querySelectorAll(".sidebar-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+
+        // 找到對應的側邊欄按鈕並激活
+        const activeButton = Array.from(
+          document.querySelectorAll(".sidebar-item")
+        ).find((item) => {
+          const onclickAttr = item.getAttribute("onclick");
+          return onclickAttr && onclickAttr.includes(`'${id}'`);
+        });
+
+        if (activeButton) {
+          activeButton.classList.add("active");
+        }
+      }
+
+      // === 讀取所有用戶 ===
+      async function loadUsers() {
+        // 如果正在搜尋，不執行普通載入
+        if (currentSearch.isSearching) {
+          return;
+        }
+
+        showLoading("載入用戶列表中...");
+        try {
+          console.log("🔍 開始載入用戶數據...");
+
+          const res = await fetch(`${apiUrl}/users`);
+          console.log("📡 API 響應狀態:", res.status, res.statusText);
+
+          if (!res.ok) {
+            throw new Error(`HTTP 錯誤! 狀態: ${res.status}`);
+          }
+
+          const users = await res.json();
+          console.log("✅ 獲取到的用戶數據:", users);
+
+          displayUsers(users);
+          updateUserStats(users);
+
+          showNotification(`成功載入 ${users.length} 個用戶`, "success");
+        } catch (error) {
+          console.error("❌ 載入用戶時出錯:", error);
+          showNotification("載入用戶列表失敗: " + error.message, "error");
+
+          // 顯示錯誤信息
+          const tbody = document.getElementById("userList");
+          tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="border px-3 py-2 text-center text-red-500">
+          載入用戶失敗: ${error.message}
+        </td>
+      </tr>
+    `;
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // === 課程管理功能 ===
+      async function loadCourses() {
+        showLoading("載入課程列表中...");
+        try {
+          console.log("🔍 開始載入課程數據...");
+
+          const res = await fetch(`${apiUrl}/admin/courses`);
+          console.log("📡 課程 API 響應狀態:", res.status, res.statusText);
+
+          if (!res.ok) {
+            throw new Error(`HTTP 錯誤! 狀態: ${res.status}`);
+          }
+
+          const result = await res.json();
+          console.log("✅ 獲取到的課程數據:", result);
+
+          // 處理兩種可能的回傳格式：陣列或包含 success 的物件
+          let courses;
+          if (Array.isArray(result)) {
+            // 直接回傳陣列格式
+            courses = result;
+          } else if (result.success && result.courses) {
+            // 包含 success 的物件格式
+            courses = result.courses;
+          } else if (!result.success) {
+            throw new Error(result.message || "獲取課程數據失敗");
+          } else {
+            throw new Error("未知的回傳格式");
+          }
+
+          const tbody = document.getElementById("courseList");
+          tbody.innerHTML = "";
+
+          // 更新統計
+          document.getElementById("totalCourses").textContent = courses.length;
+          document.getElementById("activeCourses").textContent = courses.length;
+
+          // 計算教師數和選課數
+          const teacherSet = new Set();
+          let totalEnrollments = 0;
+
+          courses.forEach((course) => {
+            teacherSet.add(course.teacher_name);
+            totalEnrollments += course.student_count || 0;
+          });
+
+          document.getElementById("totalTeachers").textContent =
+            teacherSet.size;
+          document.getElementById("totalEnrollments").textContent =
+            totalEnrollments;
+
+          if (courses.length === 0) {
+            tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="border px-3 py-2 text-center text-gray-500">
+            暫無課程數據
+          </td>
+        </tr>
+      `;
+          } else {
+            courses.forEach((course) => {
+              const tr = document.createElement("tr");
+              tr.className = "hover:bg-gray-50 smooth-transition";
+              tr.innerHTML = `
+          <td class="text-center">${course.id}</td>
+          <td>${course.name}</td>
+          <td>${course.teacher_name}</td>
+          <td class="text-center">${course.student_count || 0}</td>
+          <td class="text-center">${new Date(
+            course.created_at
+          ).toLocaleDateString()}</td>
+          <td class="text-center">
+            <button onclick="viewCourseDetails(${
+              course.id
+            })" class="text-blue-600 hover:underline hover:text-blue-800 smooth-transition mr-2">查看</button>
+            <button onclick="deleteCourse(${
+              course.id
+            })" class="text-red-600 hover:underline hover:text-red-800 smooth-transition">刪除</button>
+          </td>
+        `;
+              tbody.appendChild(tr);
+            });
+          }
+
+          showNotification(`成功載入 ${courses.length} 個課程`, "success");
+        } catch (error) {
+          console.error("❌ 載入課程時出錯:", error);
+          showNotification("載入課程列表失敗: " + error.message, "error");
+
+          // 顯示錯誤信息
+          const tbody = document.getElementById("courseList");
+          tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="border px-3 py-2 text-center text-red-500">
+          載入課程失敗: ${error.message}
+        </td>
+      </tr>
+    `;
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // 更新用戶統計
+      function updateUserStats(users) {
+        const totalUsers = users.length;
+        const teacherCount = users.filter((u) => u.role === "teacher").length;
+        const studentCount = users.filter((u) => u.role === "student").length;
+
+        document.getElementById("totalUsers").textContent = totalUsers;
+        document.getElementById("teacherCount").textContent = teacherCount;
+        document.getElementById("studentCount").textContent = studentCount;
+      }
+
+      // === 新增用戶 ===
+      document
+        .getElementById("addUserForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+          const role = document.getElementById("role").value;
+
+          if (!username || !password) {
+            showNotification("⚠️ 請輸入帳號及密碼", "warning");
+            return;
+          }
+
+          showLoading("新增用戶中...");
+          try {
+            const res = await fetch(`${apiUrl}/users`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username,
+                password,
+                role,
+              }),
+            });
+            const result = await res.json();
+
+            if (result.success) {
+              showNotification("用戶新增成功", "success");
+              e.target.reset();
+              loadUsers();
+            } else {
+              showNotification("新增失敗: " + result.message, "error");
+            }
+          } catch (error) {
+            console.error("新增用戶時出錯:", error);
+            showNotification("新增用戶失敗", "error");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      // === 刪除用戶 ===
+      async function deleteUser(id) {
+        showConfirm("確定要刪除此用戶？", async () => {
+          showLoading("刪除用戶中...");
+          try {
+            const res = await fetch(`${apiUrl}/users/${id}`, {
+              method: "DELETE",
+            });
+            const result = await res.json();
+
+            if (result.success) {
+              showNotification("用戶刪除成功", "success");
+              loadUsers();
+            } else {
+              showNotification("刪除失敗: " + result.message, "error");
+            }
+          } catch (error) {
+            console.error("刪除用戶時出錯:", error);
+            showNotification("刪除用戶失敗", "error");
+          } finally {
+            hideLoading();
+          }
+        });
+      }
+
+      // === 打開編輯視窗 ===
+      function openEditModal(id, username, role) {
+        document.getElementById("editModal").classList.remove("hidden");
+        document.getElementById("editUserId").value = id;
+        document.getElementById("editUsername").value = username;
+        document.getElementById("editRole").value = role;
+        document.getElementById("editPassword").value = "";
+      }
+
+      // === 關閉編輯視窗 ===
+      document.getElementById("cancelEdit").addEventListener("click", () => {
+        document.getElementById("editModal").classList.add("hidden");
+      });
+
+      // === 儲存修改 ===
+      document
+        .getElementById("saveEdit")
+        .addEventListener("click", async () => {
+          const id = document.getElementById("editUserId").value;
+          const username = document.getElementById("editUsername").value.trim();
+          const password = document.getElementById("editPassword").value.trim();
+          const role = document.getElementById("editRole").value;
+
+          if (!username) {
+            showNotification("⚠️ 帳號不可空白", "warning");
+            return;
+          }
+
+          showLoading("更新用戶中...");
+          try {
+            const res = await fetch(`${apiUrl}/users/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username,
+                password: password || undefined,
+                role,
+              }),
+            });
+            const result = await res.json();
+
+            if (result.success) {
+              showNotification("用戶更新成功", "success");
+              document.getElementById("editModal").classList.add("hidden");
+              loadUsers();
+            } else {
+              showNotification("更新失敗: " + result.message, "error");
+            }
+          } catch (error) {
+            console.error("更新用戶時出錯:", error);
+            showNotification("更新用戶失敗", "error");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      // 查看課程詳情
+      async function viewCourseDetails(courseId) {
+        showLoading("載入課程詳情中...");
+        try {
+          const res = await fetch(`${apiUrl}/admin/courses/${courseId}`);
+          const result = await res.json();
+
+          if (result.success) {
+            showCourseDetailModal(result.course);
+          } else {
+            showNotification("載入課程詳情失敗: " + result.message, "error");
+          }
+        } catch (error) {
+          console.error("載入課程詳情時出錯:", error);
+          showNotification("載入課程詳情失敗", "error");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // 顯示課程詳情模態框
+      function showCourseDetailModal(course) {
+        // 創建模態框
+        const modal = document.createElement("div");
+        modal.className =
+          "fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50";
+        modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-semibold mb-4 text-blue-700 flex items-center">
+        <span class="mr-2">📚</span> 課程詳情 - ${course.name}
+      </h3>
+      
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="font-semibold text-gray-700">課程ID</label>
+            <p class="mt-1">${course.id}</p>
+          </div>
+          <div>
+            <label class="font-semibold text-gray-700">課程名稱</label>
+            <p class="mt-1">${course.name}</p>
+          </div>
+        </div>
+        
+        <div>
+          <label class="font-semibold text-gray-700">課程描述</label>
+          <p class="mt-1 p-2 bg-gray-50 rounded">${
+            course.description || "無描述"
+          }</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="font-semibold text-gray-700">授課教師</label>
+            <p class="mt-1">${course.teacher_name} (ID: ${
+          course.teacher_id
+        })</p>
+          </div>
+          <div>
+            <label class="font-semibold text-gray-700">創建時間</label>
+            <p class="mt-1">${new Date(course.created_at).toLocaleString()}</p>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4">
+          <div class="text-center p-3 bg-blue-50 rounded">
+            <div class="text-2xl font-bold text-blue-700">${
+              course.student_count
+            }</div>
+            <div class="text-sm text-blue-600">學生人數</div>
+          </div>
+          <div class="text-center p-3 bg-green-50 rounded">
+            <div class="text-2xl font-bold text-green-700">${
+              course.material_count
+            }</div>
+            <div class="text-sm text-green-600">教材數量</div>
+          </div>
+          <div class="text-center p-3 bg-purple-50 rounded">
+            <div class="text-2xl font-bold text-purple-700">${
+              course.homework_count
+            }</div>
+            <div class="text-sm text-purple-600">作業數量</div>
+          </div>
+        </div>
+        
+        <div>
+          <label class="font-semibold text-gray-700">選課學生</label>
+          <div class="mt-1 max-h-32 overflow-y-auto">
+            ${
+              course.students && course.students.length > 0
+                ? course.students
+                    .map(
+                      (s) =>
+                        `<span class="inline-block bg-gray-100 px-2 py-1 rounded text-sm mr-2 mb-2">${s.username} (ID: ${s.id})</span>`
+                    )
+                    .join("")
+                : '<p class="text-gray-500">暫無學生選課</p>'
+            }
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 smooth-transition">
+          關閉
+        </button>
+      </div>
+    </div>
+  `;
+
+        document.body.appendChild(modal);
+
+        // 點擊背景關閉
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) {
+            modal.remove();
+          }
+        });
+      }
+
+      // 刪除課程
+      async function deleteCourse(courseId) {
+        showConfirm("確定要刪除此課程？", async () => {
+          showLoading("刪除課程中...");
+          try {
+            // 這裡需要實現刪除課程的API
+            showNotification("課程刪除功能待實現", "warning");
+          } catch (error) {
+            console.error("刪除課程時出錯:", error);
+            showNotification("刪除課程失敗", "error");
+          } finally {
+            hideLoading();
+          }
+        });
+      }
+
+      // === 系統監測功能 ===
+      async function loadSystemStatus() {
+        try {
+          // 模擬系統狀態數據
+          const systemData = {
+            serverStatus: "運行中",
+            databaseStatus: "已連接",
+            uptime: 86400 + 3600 + 300, // 1天1小時5分鐘
+            memoryUsage: {
+              heapUsed: 150 * 1024 * 1024, // 150MB
+            },
+            userCount: document.getElementById("totalUsers").textContent || 0,
+            courseCount:
+              document.getElementById("totalCourses").textContent || 0,
+          };
+
+          // 更新運行時間
+          const uptimeDays = Math.floor(systemData.uptime / 86400);
+          const uptimeHours = Math.floor((systemData.uptime % 86400) / 3600);
+          const uptimeMinutes = Math.floor((systemData.uptime % 3600) / 60);
+          document.getElementById(
+            "uptime"
+          ).textContent = `${uptimeDays} 天 ${uptimeHours} 時 ${uptimeMinutes} 分`;
+
+          // 更新記憶體使用
+          const memoryMB = Math.round(
+            systemData.memoryUsage.heapUsed / 1024 / 1024
+          );
+          const memoryPercent = Math.min(
+            100,
+            Math.round((memoryMB / 512) * 100)
+          ); // 假設最大 512MB
+          document.getElementById("memoryUsage").textContent = `${memoryMB} MB`;
+          document.getElementById(
+            "memoryBar"
+          ).style.width = `${memoryPercent}%`;
+
+          // 更新CPU使用率（模擬數據）
+          const cpuPercent = Math.floor(Math.random() * 30) + 10; // 10-40%
+          document.getElementById("cpuUsage").textContent = `${cpuPercent}%`;
+          document.getElementById("cpuBar").style.width = `${cpuPercent}%`;
+
+          // 更新其他資訊
+          document.getElementById("onlineUsers").textContent =
+            systemData.userCount;
+          document.getElementById("activeCoursesCount").textContent =
+            systemData.courseCount;
+          document.getElementById("todayMessages").textContent = Math.floor(
+            Math.random() * 50
+          );
+
+          showNotification("系統狀態已更新", "success");
+        } catch (error) {
+          console.error("載入系統狀態時出錯:", error);
+        }
+      }
+
+      // 定期更新系統狀態
+      setInterval(() => {
+        if (
+          !document
+            .getElementById("system-monitoring")
+            .classList.contains("hidden")
+        ) {
+          loadSystemStatus();
+        }
+      }, 10000);
+
+      // 頁面載入時立即檢查登入狀態和權限
+      window.addEventListener("load", function () {
+        fetch("/check-auth", {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+          credentials: "include",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.success || data.user.role !== "admin") {
+              // 未登入或非管理員，立即顯示錯誤訊息
+              document.body.innerHTML = `
+              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+                <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+                  <h1 style="color: #ef4444; margin-bottom: 1rem;">⚠️ 未授權訪問</h1>
+                  <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">${JSON.stringify(
+                    data.success
+                      ? { success: false, message: "需要管理員權限" }
+                      : data,
+                    null,
+                    2
+                  )}</pre>
+                  <p style="margin-top: 1rem; color: #6b7280;">
+                    <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+                  </p>
+                </div>
+              </div>
+            `;
+              return;
+            }
+            // 權限驗證通過，初始化管理員頁面
+            initAdminPage();
+          })
+          .catch((error) => {
+            console.error("認證檢查錯誤:", error);
+            document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+              <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+                <h1 style="color: #ef4444; margin-bottom: 1rem;">❌ 連接錯誤</h1>
+                <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">{"success": false, "message": "請先登入系統"}</pre>
+                <p style="margin-top: 1rem; color: #6b7280;">
+                  <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+                </p>
+              </div>
+            </div>
+          `;
+          });
+      });
+
+      // 防止使用瀏覽器返回按鈕
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
+
+      // 初始化管理員頁面的函數
+      function initAdminPage() {
+        console.log("🔧 初始化管理員專區");
+
+        // 設置側邊欄點擊事件
+        document.querySelectorAll(".sidebar-item").forEach((item) => {
+          item.addEventListener("click", function () {
+            // 移除所有active類
+            document
+              .querySelectorAll(".sidebar-item")
+              .forEach((i) => i.classList.remove("active"));
+            // 添加active類到當前點擊的項目
+            this.classList.add("active");
+
+            // 根據點擊的項目載入對應數據
+            const sectionId =
+              this.getAttribute("onclick").match(/'([^']+)'/)[1];
+            if (sectionId === "course-management") {
+              setTimeout(() => {
+                loadCourses();
+              }, 100);
+            } else if (sectionId === "system-monitoring") {
+              setTimeout(() => {
+                loadSystemStatus();
+              }, 100);
+            }
+          });
+        });
+
+        // 顯示用戶管理區塊並載入用戶
+        showSection("user-management");
+
+        // 初始化搜尋功能
+        initSearch();
+
+        // 立即載入用戶數據
+        setTimeout(() => {
+          loadUsers();
+        }, 100);
+      }
+
+      // 頁面載入後初始化 (現在只是保留，不執行任何操作)
+      document.addEventListener("DOMContentLoaded", () => {
+        // 所有初始化已移至 load 事件的權限檢查後執行
+        console.log("📄 DOM 內容已載入，等待權限驗證...");
+      });
+    </script>
+  </body>
+</html>

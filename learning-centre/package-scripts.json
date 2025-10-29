@@ -1,0 +1,17 @@
+{
+  "name": "learning-centre-server",
+  "version": "1.0.0",
+  "description": "智能學習中心伺服器",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "npx tsc && cp -r public dist/",
+    "start": "node dist/server.js",
+    "dev": "npm run build && npm start",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
+    "server": "bash start-server.sh"
+  },
+  "keywords": ["education", "learning", "typescript", "node"],
+  "author": "Tommy Lam",
+  "license": "MIT"
+}

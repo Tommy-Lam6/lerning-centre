@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>SmartEdu 教學平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .course-card {
+        transition: all 0.3s ease;
+      }
+      .course-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      }
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      }
+      .modal {
+        transition: opacity 0.25s ease;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <!-- 頂部導航 -->
+    <header
+      class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg"
+    >
+      <div
+        class="container mx-auto px-4 py-4 flex justify-between items-center"
+      >
+        <div class="flex items-center space-x-3">
+          <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+            <span class="text-2xl">📚</span>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold">SmartEdu 教學平台</h1>
+            <p class="text-blue-100 text-sm">智慧學習，無限可能</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div
+            id="userInfo"
+            class="bg-white bg-opacity-20 px-4 py-2 rounded-lg"
+          >
+            <span class="font-medium">載入中...</span>
+          </div>
+          <button
+            id="logoutBtn"
+            class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow"
+          >
+            登出系統
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主內容區域 -->
+    <main class="container mx-auto px-4 py-8">
+      <!-- 歡迎訊息 -->
+      <div class="text-center mb-12">
+        <h2 id="welcome" class="text-3xl font-bold text-gray-800 mb-2">
+          歡迎使用 SmartEdu
+        </h2>
+        <p class="text-gray-600 max-w-2xl mx-auto">
+          這是一個整合課程管理、線上學習和互動交流的智慧教育平台
+        </p>
+      </div>
+
+      <!-- 學生功能按鈕 -->
+      <div
+        id="studentControls"
+        class="hidden mb-8 flex justify-center space-x-4"
+      >
+        <button
+          id="showMyCourses"
+          class="btn-primary text-white px-6 py-3 rounded-lg font-medium shadow hover:shadow-lg transition-all duration-200"
+        >
+          📚 我的課程
+        </button>
+        <button
+          id="showAllCourses"
+          class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium shadow hover:bg-green-700 transition-all duration-200"
+        >
+          🔍 探索課程
+        </button>
+      </div>
+
+      <!-- 老師專用控制面板 -->
+      <section id="teacherControls" class="hidden mb-12">
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-blue-100">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <span class="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3"
+              >👨‍🏫</span
+            >
+            建立新課程
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >課程名稱</label
+              >
+              <input
+                id="courseName"
+                type="text"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="例如：網頁開發入門"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >課程描述</label
+              >
+              <input
+                id="courseDesc"
+                type="text"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="簡要描述課程內容"
+              />
+            </div>
+          </div>
+          <button
+            id="createCourse"
+            class="btn-primary text-white px-6 py-3 rounded-lg font-medium shadow hover:shadow-lg transition-all duration-200"
+          >
+            建立課程房間
+          </button>
+        </div>
+      </section>
+
+      <!-- 我的課程列表區域 -->
+      <section
+        id="myCoursesSection"
+        class="bg-white rounded-xl shadow-lg overflow-hidden"
+      >
+        <div
+          class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200"
+        >
+          <h2 class="text-xl font-bold text-gray-800 flex items-center">
+            <span class="bg-blue-500 text-white p-2 rounded-lg mr-3">📚</span>
+            我的課程列表
+          </h2>
+        </div>
+        <div class="p-6">
+          <div id="myCourseList" class="space-y-4">
+            <div class="text-center py-8">
+              <div
+                class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"
+              ></div>
+              <p class="text-gray-500">載入課程中...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 所有課程列表區域 -->
+      <section
+        id="allCoursesSection"
+        class="bg-white rounded-xl shadow-lg overflow-hidden hidden"
+      >
+        <div
+          class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200"
+        >
+          <h2 class="text-xl font-bold text-gray-800 flex items-center">
+            <span class="bg-green-500 text-white p-2 rounded-lg mr-3">🔍</span>
+            所有可用課程
+          </h2>
+        </div>
+        <div class="p-6">
+          <div id="allCourseList" class="space-y-4">
+            <div class="text-center py-8">
+              <div
+                class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"
+              ></div>
+              <p class="text-gray-500">載入課程中...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 編輯課程模態框 -->
+    <div
+      id="editModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">編輯課程</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >課程名稱</label
+            >
+            <input
+              id="editCourseName"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >課程描述</label
+            >
+            <input
+              id="editCourseDesc"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+          <button
+            id="cancelEdit"
+            class="px-4 py-2 text-gray-600 hover:text-gray-800 transition"
+          >
+            取消
+          </button>
+          <button
+            id="saveEdit"
+            class="btn-primary text-white px-5 py-2 rounded-lg font-medium"
+          >
+            儲存變更
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 刪除確認模態框 -->
+    <div
+      id="deleteModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div class="text-center">
+          <div
+            class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"
+          >
+            <span class="text-red-600 text-xl">⚠️</span>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">確認刪除課程</h3>
+          <p class="text-gray-600 mb-6">
+            您確定要刪除這個課程嗎？此操作無法復原，所有相關資料將被永久刪除。
+          </p>
+        </div>
+        <div class="flex justify-center space-x-3">
+          <button
+            id="cancelDelete"
+            class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+          >
+            取消
+          </button>
+          <button
+            id="confirmDelete"
+            class="bg-red-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-red-700 transition"
+          >
+            確認刪除
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer class="bg-gray-800 text-white mt-12">
+      <div class="container mx-auto px-4 py-6 text-center">
+        <p>© 2024 SmartEdu 教學平台 - 讓學習更智慧</p>
+      </div>
+    </footer>
+
+    <script>
+      let currentEditingCourse = null;
+      let currentDeletingCourse = null;
+      let currentView = "myCourses";
+
+      // 登出功能（確保在 init 函數外面）
+      function logout() {
+        if (confirm("確定要登出嗎？")) {
+          fetch("/logout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // 清除所有儲存並重定向，防止返回
+                sessionStorage.clear();
+                localStorage.clear();
+                // 使用 replace 防止返回
+                window.location.replace("/?" + "t=" + new Date().getTime());
+              } else {
+                alert("登出失敗，請重試");
+              }
+            })
+            .catch((error) => {
+              console.error("登出錯誤:", error);
+              // 即使出錯也重定向到登入頁
+              window.location.replace("/?" + "t=" + new Date().getTime());
+            });
+        }
+      }
+      async function init() {
+        try {
+          // 檢查用戶登入狀態 - 添加緩存控制
+          const res = await fetch("/check-auth", {
+            method: "GET",
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+            credentials: "include",
+          });
+
+          if (!res.ok) {
+            throw new Error("認證檢查失敗");
+          }
+
+          const data = await res.json();
+          if (!data.success) {
+            // 如果未登入，徹底重定向
+            sessionStorage.clear();
+            localStorage.clear();
+            window.location.replace("/?" + "t=" + new Date().getTime());
+            return;
+          }
+
+          const { role, username } = data.user;
+          document.getElementById(
+            "welcome"
+          ).textContent = `👋 歡迎 ${username} (${role})`;
+          document.getElementById("userInfo").innerHTML = `
+      <span class="font-medium">${username}</span>
+      <span class="text-blue-100 text-sm block">${role}</span>
+    `;
+
+          // 顯示老師控制面板
+          if (role === "teacher") {
+            document
+              .getElementById("teacherControls")
+              .classList.remove("hidden");
+            loadTeacherCourses();
+          } else {
+            // 顯示學生功能按鈕
+            document
+              .getElementById("studentControls")
+              .classList.remove("hidden");
+            document
+              .getElementById("myCoursesSection")
+              .classList.remove("hidden");
+            document
+              .getElementById("allCoursesSection")
+              .classList.add("hidden");
+            loadMyCourses();
+          }
+        } catch (error) {
+          console.error("認證檢查錯誤:", error);
+          // 出錯時也重定向到登入頁
+          sessionStorage.clear();
+          localStorage.clear();
+          window.location.replace("/?" + "t=" + new Date().getTime());
+          return;
+        }
+
+        // 在 init 函數的最後添加登出按鈕事件綁定
+        document
+          .getElementById("logoutBtn")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            logout();
+          });
+        // 建立課程功能
+        document
+          .getElementById("createCourse")
+          ?.addEventListener("click", async () => {
+            const name = document.getElementById("courseName").value.trim();
+            const description = document
+              .getElementById("courseDesc")
+              .value.trim();
+            if (!name) {
+              alert("請輸入課程名稱！");
+              return;
+            }
+
+            const res = await fetch("/teacher/courses", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, description }),
+            });
+            const result = await res.json();
+            if (result.success) {
+              alert("✅ 課程已成功建立！");
+              document.getElementById("courseName").value = "";
+              document.getElementById("courseDesc").value = "";
+              loadTeacherCourses();
+            } else {
+              alert("❌ " + (result.message || "建立課程失敗"));
+            }
+          });
+
+        // 學生功能按鈕
+        document
+          .getElementById("showMyCourses")
+          ?.addEventListener("click", () => {
+            showMyCourses();
+          });
+
+        document
+          .getElementById("showAllCourses")
+          ?.addEventListener("click", () => {
+            showAllCourses();
+          });
+
+        // 模態框事件處理
+        setupModalEvents();
+
+        // 修復登出按鈕事件綁定
+        document
+          .getElementById("logoutBtn")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            logout();
+          });
+      }
+
+      function setupModalEvents() {
+        // 編輯模態框
+        document.getElementById("cancelEdit").addEventListener("click", () => {
+          document.getElementById("editModal").classList.add("hidden");
+        });
+
+        document
+          .getElementById("saveEdit")
+          .addEventListener("click", async () => {
+            if (!currentEditingCourse) return;
+
+            const name = document.getElementById("editCourseName").value.trim();
+            const description = document
+              .getElementById("editCourseDesc")
+              .value.trim();
+
+            if (!name) {
+              alert("請輸入課程名稱");
+              return;
+            }
+
+            try {
+              const res = await fetch(
+                `/teacher/courses/${currentEditingCourse.id}`,
+                {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, description }),
+                }
+              );
+
+              const result = await res.json();
+              if (result.success) {
+                alert("✅ 課程已更新！");
+                document.getElementById("editModal").classList.add("hidden");
+                loadTeacherCourses();
+              } else {
+                alert("❌ " + (result.message || "更新失敗"));
+              }
+            } catch (error) {
+              console.error("更新課程錯誤:", error);
+              alert("❌ 更新課程時發生錯誤");
+            }
+          });
+
+        // 刪除模態框
+        document
+          .getElementById("cancelDelete")
+          .addEventListener("click", () => {
+            document.getElementById("deleteModal").classList.add("hidden");
+          });
+
+        document
+          .getElementById("confirmDelete")
+          .addEventListener("click", async () => {
+            if (!currentDeletingCourse) return;
+
+            try {
+              const res = await fetch(
+                `/teacher/courses/${currentDeletingCourse.id}`,
+                {
+                  method: "DELETE",
+                }
+              );
+
+              const result = await res.json();
+              if (result.success) {
+                alert("✅ 課程已刪除！");
+                document.getElementById("deleteModal").classList.add("hidden");
+                loadTeacherCourses();
+              } else {
+                alert("❌ " + (result.message || "刪除失敗"));
+              }
+            } catch (error) {
+              console.error("刪除課程錯誤:", error);
+              alert("❌ 刪除課程時發生錯誤");
+            }
+          });
+      }
+
+      function showMyCourses() {
+        currentView = "myCourses";
+        document.getElementById("myCoursesSection").classList.remove("hidden");
+        document.getElementById("allCoursesSection").classList.add("hidden");
+        document.getElementById("showMyCourses").classList.add("btn-primary");
+        document
+          .getElementById("showMyCourses")
+          .classList.remove("bg-gray-400");
+        document
+          .getElementById("showAllCourses")
+          .classList.remove("bg-green-600");
+        document.getElementById("showAllCourses").classList.add("bg-gray-400");
+        loadMyCourses();
+      }
+
+      function showAllCourses() {
+        currentView = "allCourses";
+        document.getElementById("myCoursesSection").classList.add("hidden");
+        document.getElementById("allCoursesSection").classList.remove("hidden");
+        document
+          .getElementById("showMyCourses")
+          .classList.remove("btn-primary");
+        document.getElementById("showMyCourses").classList.add("bg-gray-400");
+        document.getElementById("showAllCourses").classList.add("bg-green-600");
+        document
+          .getElementById("showAllCourses")
+          .classList.remove("bg-gray-400");
+        loadAllCourses();
+      }
+
+      function openEditModal(course) {
+        currentEditingCourse = course;
+        document.getElementById("editCourseName").value = course.name;
+        document.getElementById("editCourseDesc").value =
+          course.description || "";
+        document.getElementById("editModal").classList.remove("hidden");
+      }
+
+      function openDeleteModal(course) {
+        currentDeletingCourse = course;
+        document.getElementById("deleteModal").classList.remove("hidden");
+      }
+
+      async function loadTeacherCourses() {
+        try {
+          const res = await fetch("/teacher/courses");
+          const data = await res.json();
+          const list = document.getElementById("myCourseList");
+
+          if (!data.length) {
+            list.innerHTML = `
+            <div class="text-center py-8">
+              <div class="text-4xl mb-4">📝</div>
+              <p class="text-gray-500 mb-2">尚未建立任何課程</p>
+              <p class="text-gray-400 text-sm">使用上方的表單建立您的第一個課程</p>
+            </div>
+          `;
+            return;
+          }
+
+          list.innerHTML = data
+            .map(
+              (course) => `
+          <div class="course-card bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300">
+            <div class="flex flex-col md:flex-row md:items-center justify-between">
+              <div class="mb-3 md:mb-0 flex-1">
+                <h3 class="text-lg font-semibold text-gray-800 mb-1">${
+                  course.name
+                }</h3>
+                <p class="text-gray-600 text-sm mb-2">${
+                  course.description || "暫無描述"
+                }</p>
+                <div class="flex flex-wrap items-center text-sm text-gray-500 gap-2">
+                  <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">課程 ID: ${
+                    course.id
+                  }</span>
+                  <span class="bg-green-100 text-green-600 px-2 py-1 rounded">房間 ID: ${
+                    course.room_id || "N/A"
+                  }</span>
+                  <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded">學生人數: ${
+                    course.student_count || 0
+                  }</span>
+                </div>
+              </div>
+              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-3 md:mt-0">
+                ${
+                  course.room_id
+                    ? `
+                  <a href="/teacher-room/${course.id}"
+                     class="btn-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow hover:shadow-lg text-center">
+                    進入教室
+                  </a>
+                `
+                    : ""
+                }
+                <button onclick="openEditModal(${JSON.stringify(course).replace(
+                  /"/g,
+                  "&quot;"
+                )})" 
+                        class="bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-600 transition-colors text-center">
+                  編輯
+                </button>
+                <button onclick="openDeleteModal(${JSON.stringify(
+                  course
+                ).replace(/"/g, "&quot;")})" 
+                        class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors text-center">
+                  刪除
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+            )
+            .join("");
+        } catch (error) {
+          console.error("載入課程失敗:", error);
+          document.getElementById("myCourseList").innerHTML = `
+          <div class="text-center py-8 text-red-500">
+            <p>載入課程失敗，請重新整理頁面</p>
+          </div>
+        `;
+        }
+      }
+
+      async function loadMyCourses() {
+        try {
+          const res = await fetch("/student/courses");
+          const data = await res.json();
+          const list = document.getElementById("myCourseList");
+
+          if (!data.length) {
+            list.innerHTML = `
+            <div class="text-center py-8">
+              <div class="text-4xl mb-4">📝</div>
+              <p class="text-gray-500 mb-2">尚未加入任何課程</p>
+              <p class="text-gray-400 text-sm">點擊"探索課程"來尋找並加入感興趣的課程</p>
+            </div>
+          `;
+            return;
+          }
+
+          list.innerHTML = data
+            .map(
+              (course) => `
+          <div class="course-card bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300">
+            <div class="flex flex-col md:flex-row md:items-center justify-between">
+              <div class="mb-3 md:mb-0 flex-1">
+                <h3 class="text-lg font-semibold text-gray-800 mb-1">${
+                  course.name
+                }</h3>
+                <p class="text-gray-600 text-sm mb-2">${
+                  course.description || "暫無描述"
+                }</p>
+                <div class="flex flex-wrap items-center text-sm text-gray-500 gap-2">
+                  <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">課程 ID: ${
+                    course.id
+                  }</span>
+                  <span class="bg-green-100 text-green-600 px-2 py-1 rounded">房間 ID: ${
+                    course.room_id || "N/A"
+                  }</span>
+                  <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded">教師: ${
+                    course.teacher_name
+                  }</span>
+                </div>
+              </div>
+              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-3 md:mt-0">
+                ${
+                  course.room_id
+                    ? `
+                 <a href="/student-room/${course.id}"
+                     class="btn-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow hover:shadow-lg text-center">
+                    進入教室
+                  </a>
+                `
+                    : ""
+                }
+                <button onclick="unenrollCourse(${course.id})" 
+                        class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors text-center">
+                  退選
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+            )
+            .join("");
+        } catch (error) {
+          console.error("載入我的課程失敗:", error);
+          document.getElementById("myCourseList").innerHTML = `
+          <div class="text-center py-8 text-red-500">
+            <p>載入課程失敗，請重新整理頁面</p>
+          </div>
+        `;
+        }
+      }
+
+      async function loadAllCourses() {
+        try {
+          const res = await fetch("/courses");
+          const data = await res.json();
+          const list = document.getElementById("allCourseList");
+
+          if (!data.length) {
+            list.innerHTML = `
+            <div class="text-center py-8">
+              <div class="text-4xl mb-4">📚</div>
+              <p class="text-gray-500 mb-2">暫無可用課程</p>
+              <p class="text-gray-400 text-sm">請聯繫老師建立課程</p>
+            </div>
+          `;
+            return;
+          }
+
+          list.innerHTML = data
+            .map(
+              (course) => `
+          <div class="course-card bg-white border border-gray-200 rounded-lg p-5 hover:border-green-300">
+            <div class="flex flex-col md:flex-row md:items-center justify-between">
+              <div class="mb-3 md:mb-0 flex-1">
+                <h3 class="text-lg font-semibold text-gray-800 mb-1">${
+                  course.name
+                }</h3>
+                <p class="text-gray-600 text-sm mb-2">${
+                  course.description || "暫無描述"
+                }</p>
+                <div class="flex flex-wrap items-center text-sm text-gray-500 gap-2">
+                  <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">課程 ID: ${
+                    course.id
+                  }</span>
+                  <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded">教師: ${
+                    course.teacher_name
+                  }</span>
+                  <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded">建立時間: ${new Date(
+                    course.created_at
+                  ).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div class="mt-3 md:mt-0">
+                ${
+                  course.is_enrolled
+                    ? `
+                  <div class="flex items-center space-x-2">
+                    <span class="bg-green-100 text-green-600 px-3 py-2 rounded-lg font-medium">已選課</span>
+                    <button onclick="unenrollCourse(${course.id})" 
+                            class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors">
+                      退選
+                    </button>
+                  </div>
+                `
+                    : `
+                  <button onclick="enrollCourse(${course.id})" 
+                          class="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                    選課
+                  </button>
+                `
+                }
+              </div>
+            </div>
+          </div>
+        `
+            )
+            .join("");
+        } catch (error) {
+          console.error("載入所有課程失敗:", error);
+          document.getElementById("allCourseList").innerHTML = `
+          <div class="text-center py-8 text-red-500">
+            <p>載入課程失敗，請重新整理頁面</p>
+          </div>
+        `;
+        }
+      }
+
+      async function enrollCourse(courseId) {
+        try {
+          const res = await fetch("/student/enroll", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ course_id: courseId }),
+          });
+          const result = await res.json();
+
+          if (result.success) {
+            alert("✅ " + result.message);
+            // 刷新當前視圖
+            if (currentView === "myCourses") {
+              loadMyCourses();
+            } else {
+              loadAllCourses();
+            }
+          } else {
+            alert("❌ " + result.message);
+          }
+        } catch (error) {
+          console.error("選課錯誤:", error);
+          alert("❌ 選課時發生錯誤");
+        }
+      }
+
+      async function unenrollCourse(courseId) {
+        if (!confirm("確定要退選這個課程嗎？")) {
+          return;
+        }
+
+        try {
+          const res = await fetch("/student/unenroll", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ course_id: courseId }),
+          });
+          const result = await res.json();
+
+          if (result.success) {
+            alert("✅ " + result.message);
+            // 刷新當前視圖
+            if (currentView === "myCourses") {
+              loadMyCourses();
+            } else {
+              loadAllCourses();
+            }
+          } else {
+            alert("❌ " + result.message);
+          }
+        } catch (error) {
+          console.error("退選錯誤:", error);
+          alert("❌ 退選時發生錯誤");
+        }
+      }
+
+      // 頁面載入時立即檢查登入狀態
+      window.addEventListener("load", function () {
+        // 防止緩存，立即檢查登入狀態
+        fetch("/check-auth", {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+          credentials: "include",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.success) {
+              // 未登入，立即顯示錯誤訊息並阻止頁面顯示
+              document.body.innerHTML = `
+              <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+                <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+                  <h1 style="color: #ef4444; margin-bottom: 1rem;">⚠️ 未授權訪問</h1>
+                  <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">${JSON.stringify(
+                    data,
+                    null,
+                    2
+                  )}</pre>
+                  <p style="margin-top: 1rem; color: #6b7280;">
+                    <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+                  </p>
+                </div>
+              </div>
+            `;
+              return;
+            }
+            // 如果登入狀態有效，初始化頁面
+            init();
+          })
+          .catch((error) => {
+            console.error("認證檢查錯誤:", error);
+            document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+              <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;">
+                <h1 style="color: #ef4444; margin-bottom: 1rem;">❌ 連接錯誤</h1>
+                <pre style="background: #f9fafb; padding: 1rem; border-radius: 4px; border: 1px solid #e5e7eb;">{"success": false, "message": "請先登入系統"}</pre>
+                <p style="margin-top: 1rem; color: #6b7280;">
+                  <a href="/login.html" style="color: #3b82f6; text-decoration: underline;">點擊這裡重新登入</a>
+                </p>
+              </div>
+            </div>
+          `;
+          });
+      });
+
+      // 防止使用瀏覽器返回按鈕
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+          // 頁面是從緩存載入的，重新檢查登入狀態
+          window.location.reload();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登入系統 - SmartEdu 補習社</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded shadow-lg w-full max-w-md">
+      <h1 class="text-2xl font-bold mb-6 text-center text-blue-700">
+        🔐 SmartEdu 登入系統
+      </h1>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-gray-700 font-medium mb-1"
+            >帳號</label
+          >
+          <input
+            id="username"
+            name="username"
+            type="text"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-gray-700 font-medium mb-1"
+            >密碼</label
+          >
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+        >
+          登入
+        </button>
+      </form>
+
+      <p id="errorMessage" class="text-red-600 text-center mt-4 hidden"></p>
+
+      <!-- 預設帳號提示 -->
+      <div class="mt-6 p-4 bg-gray-50 rounded text-sm text-gray-600">
+        <p class="font-semibold mb-2">預設測試帳號：</p>
+        <p>👨‍💼 管理員 - 帳號: admin, 密碼: admin123</p>
+        <p>👨‍🏫 教師 - 帳號: teacher1, 密碼: teacher123</p>
+        <p>👨‍🎓 學生 - 帳號: student1, 密碼: student123</p>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+          const errorMsg = document.getElementById("errorMessage");
+
+          errorMsg.classList.add("hidden");
+
+          try {
+            const res = await fetch("/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password }),
+            });
+
+            const data = await res.json();
+            console.log("登入回應:", data);
+
+            if (data.success) {
+              // 清除歷史記錄，防止返回
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, null, "/");
+              }
+
+              // 根據角色跳轉到不同頁面
+              if (data.role === "admin") {
+                window.location.replace("/admin");
+              } else if (data.role === "teacher") {
+                window.location.replace("/teacher");
+              } else if (data.role === "student") {
+                window.location.replace("/student");
+              } else {
+                window.location.replace("/dashboard.html");
+              }
+            } else {
+              errorMsg.textContent =
+                data.message || "登入失敗，請檢查帳號或密碼。";
+              errorMsg.classList.remove("hidden");
+            }
+          } catch (err) {
+            console.error("登入錯誤:", err);
+            errorMsg.textContent = "伺服器連接錯誤，請稍後再試。";
+            errorMsg.classList.remove("hidden");
+          }
+        });
+    </script>
+  </body>
+</html>

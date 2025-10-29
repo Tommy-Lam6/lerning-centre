@@ -1,0 +1,43 @@
+# 全域忽略檔案
+
+# 依賴項
+**/node_modules/
+
+# 編譯輸出
+**/dist/
+
+# 資料庫檔案
+**/*.db
+**/*.sqlite
+**/*.sqlite-shm
+**/*.sqlite-wal
+
+# 日誌檔案
+**/*.log
+**/server.log
+
+# 環境變數
+**/.env
+**/.env.local
+
+# IDE 設定
+**/.vscode/
+**/.idea/
+
+# 作業系統產生的檔案
+**/.DS_Store
+**/Thumbs.db
+
+# 臨時檔案
+**/*.tmp
+**/*.temp
+
+# Cookie 檔案
+**/*cookies*.txt
+
+# 鎖定檔案 (選擇性保留 package-lock.json)
+**/pnpm-lock.yaml
+
+# 備份檔案
+**/*.bak
+**/*.backup
