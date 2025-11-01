@@ -176,27 +176,51 @@
               <i class="fas fa-video mr-2"></i>直播課堂
             </h3>
             <div
+              id="liveStreamArea"
               class="aspect-video bg-gray-800 flex items-center justify-center text-white rounded-lg mb-4"
             >
               <div class="text-center">
                 <div class="text-5xl mb-4">
                   <i class="fas fa-play-circle"></i>
                 </div>
-                <p class="text-xl font-medium">直播課堂將於上課時間開始</p>
-                <p class="text-blue-200 mt-2">下次直播: 今日 14:00</p>
+                <p class="text-xl font-medium">載入會議資訊中...</p>
+                <p class="text-blue-200 mt-2">正在檢查可參加的會議</p>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div id="meetingControls" class="grid grid-cols-2 gap-3">
               <button
+                id="joinLiveBtn"
                 class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                disabled
               >
                 <i class="fas fa-sign-in-alt mr-2"></i>加入直播
               </button>
               <button
                 class="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+                onclick="testAudio()"
               >
                 <i class="fas fa-volume-up mr-2"></i>測試音訊
               </button>
+            </div>
+            <div
+              id="meetingInfo"
+              class="hidden mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200"
+            >
+              <h4 class="font-semibold text-blue-800 mb-2">會議資訊</h4>
+              <div class="space-y-1 text-sm text-blue-700">
+                <div class="flex justify-between">
+                  <span>課堂:</span>
+                  <span id="meetingTitle"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span>教師:</span>
+                  <span id="teacherName"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span>開始時間:</span>
+                  <span id="startTime"></span>
+                </div>
+              </div>
             </div>
             <div
               class="mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200"
@@ -297,6 +321,30 @@
 
           <!-- Main content -->
           <div class="flex-1 space-y-6">
+            <!-- 作業內容輸入區 -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+              <h3
+                class="text-xl font-bold text-blue-800 mb-4 flex items-center"
+              >
+                <i class="fas fa-edit mr-2"></i>作業內容
+              </h3>
+              <p class="text-gray-600 mb-4">
+                請輸入或上傳您的作業內容，系統將自動分析並生成相關試題
+              </p>
+              <textarea
+                id="homeworkText"
+                class="w-full border rounded-lg p-3 text-sm mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                rows="6"
+                placeholder="請在此輸入您的作業內容，或上傳文字檔案自動填入..."
+              ></textarea>
+              <button
+                onclick="generateQuiz()"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              >
+                <i class="fas fa-brain mr-2"></i>生成試題
+              </button>
+            </div>
+
             <div class="bg-white p-6 rounded-xl shadow-lg">
               <h3
                 class="text-xl font-bold text-blue-800 mb-4 flex items-center"
@@ -304,9 +352,15 @@
                 <i class="fas fa-question-circle mr-2"></i>自動生成試題
               </h3>
               <p class="text-gray-600 mb-4">
-                系統會根據課程內容生成練習題目，幫助您鞏固知識點
+                系統會根據您的作業內容自動生成練習題目，幫助您鞏固知識點
               </p>
-              <div id="generatedQuestions" class="space-y-4">
+              <div id="quizArea" class="space-y-4">
+                <div class="text-center py-8 text-gray-500">
+                  <i class="fas fa-lightbulb text-4xl mb-3"></i>
+                  <p>上傳作業或輸入內容後，系統將自動生成相關試題</p>
+                </div>
+              </div>
+              <div id="generatedQuestions" class="space-y-4 hidden">
                 <div class="p-4 border rounded-lg">
                   <p class="font-medium mb-2">1. 請解釋本課程的核心概念？</p>
                   <textarea
@@ -826,6 +880,382 @@
         }
       }
 
+      // 生成試題功能
+      async function generateQuiz() {
+        console.log("🔄 generateQuiz 被調用");
+
+        const homeworkText = document.getElementById("homeworkText");
+        const quizArea = document.getElementById("quizArea");
+
+        console.log("📝 homeworkText:", homeworkText);
+        console.log("📝 homeworkText.value:", homeworkText?.value);
+        console.log("📝 quizArea:", quizArea);
+
+        if (!homeworkText || !homeworkText.value.trim()) {
+          showNotification("❌ 請先輸入作業內容", "error");
+          return;
+        }
+
+        if (!quizArea) {
+          showNotification("❌ 找不到試題區域", "error");
+          return;
+        }
+
+        // 顯示載入中
+        quizArea.innerHTML = `
+          <div class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">🧠 AI正在分析您的作業並生成試題...</p>
+          </div>
+        `;
+
+        try {
+          const response = await fetch("/api/generate-quiz", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              homeworkContent: homeworkText.value.trim(),
+              questionCount: 3,
+            }),
+            credentials: "include",
+          });
+
+          const result = await response.json();
+          console.log("📝 API 回應:", result);
+
+          if (!result.success) {
+            throw new Error(result.message || "生成試題失敗");
+          }
+
+          console.log("✅ 準備顯示試題:", result.questions);
+          // 顯示生成的試題
+          displayQuiz(result.questions);
+          showNotification("✅ 試題生成成功！", "success");
+        } catch (error) {
+          console.error("生成試題錯誤:", error);
+          quizArea.innerHTML = `
+            <div class="text-center py-8">
+              <div class="text-red-500 text-4xl mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <p class="text-red-600">生成試題失敗: ${error.message}</p>
+              <button onclick="generateQuiz()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                重試
+              </button>
+            </div>
+          `;
+          showNotification("❌ " + error.message, "error");
+        }
+      }
+
+      // 顯示試題
+      function displayQuiz(questions) {
+        console.log("📝 displayQuiz 被調用，試題數量:", questions.length);
+        console.log("📝 試題內容:", questions);
+
+        const quizArea = document.getElementById("quizArea");
+        console.log("📝 quizArea 元素:", quizArea);
+
+        if (!quizArea) {
+          console.error("❌ 找不到 quizArea 元素");
+          showNotification("❌ 找不到試題顯示區域", "error");
+          return;
+        }
+
+        // 如果沒有提取到問題，顯示提示訊息
+        if (!questions || questions.length === 0) {
+          quizArea.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-exclamation-circle text-4xl mb-3 text-orange-400"></i>
+              <h3 class="text-lg font-medium mb-2">未找到試題</h3>
+              <p class="mb-2">系統無法在您上傳的文件中找到問題格式的內容。</p>
+              <div class="text-sm text-left bg-gray-50 p-4 rounded-lg mt-4 max-w-md mx-auto">
+                <p class="font-medium mb-2">📝 支持的問題格式：</p>
+                <ul class="space-y-1">
+                  <li>• 1. 這是什麼問題？</li>
+                  <li>• 問題：如何解決此問題？</li>
+                  <li>• (1) 為什麼會這樣？</li>
+                  <li>• 以問號(？)結尾的句子</li>
+                </ul>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // 顯示提取到的問題
+        let quizHTML = `
+          <div class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-semibold text-blue-700">📝 從作業中提取的問題</h3>
+              <span class="text-sm text-gray-600">共找到 ${questions.length} 題</span>
+            </div>
+        `;
+
+        questions.forEach((question, index) => {
+          quizHTML += `
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h4 class="font-medium text-gray-800 mb-3">第 ${index + 1} 題</h4>
+              <p class="text-gray-700 mb-4">${question.question}</p>
+          `;
+
+          // 對於從文件提取的問題，主要提供文本輸入框
+          quizHTML += `
+            <textarea class="w-full p-3 border border-gray-300 rounded-lg h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                      placeholder="請輸入您的答案..." name="question_${question.id}"></textarea>
+          `;
+
+          quizHTML += `
+              <div class="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                <p class="text-xs text-blue-700">💡 ${question.explanation}</p>
+              </div>
+            </div>
+          `;
+        });
+
+        quizHTML += `
+            <div class="flex justify-center">
+              <button onclick="submitQuiz()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition-colors">
+                <i class="fas fa-check mr-2"></i>提交答案
+              </button>
+            </div>
+          </div>
+        `;
+
+        quizArea.innerHTML = quizHTML;
+        console.log("✅ 試題 HTML 已設置到 quizArea");
+        console.log(
+          "📝 最終的 quizArea.innerHTML:",
+          quizArea.innerHTML.substring(0, 200) + "..."
+        );
+      }
+
+      // 提交試題答案
+      function submitQuiz() {
+        showNotification(
+          "✅ 答案已提交！試題僅供練習，請繼續學習。",
+          "success"
+        );
+      }
+
+      // 處理作業上傳的改進版本
+      async function uploadHomework() {
+        const fileInput = document.getElementById("homeworkFile");
+        const homeworkText = document.getElementById("homeworkText");
+
+        if (!fileInput || !fileInput.files.length) {
+          showNotification("❌ 請選擇要上傳的檔案", "error");
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append("homework", file);
+
+        try {
+          // 顯示上傳進度
+          showNotification("📤 正在上傳作業...", "info");
+
+          const response = await fetch("/upload-homework", {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message || "上傳失敗");
+          }
+
+          showNotification("✅ 作業上傳成功！", "success");
+
+          // 檢查是否有提取的內容
+          if (result.extractedContent) {
+            // 有提取的文檔內容：直接使用提取的內容
+            console.log("📄 使用提取的文檔內容生成試題");
+            if (homeworkText) {
+              homeworkText.value = result.extractedContent;
+            }
+            // 基於提取的真實內容生成試題
+            generateQuizFromContent(result.extractedContent);
+          } else if (file.type.includes("text") || file.name.endsWith(".txt")) {
+            // 文字檔案：讀取內容並生成試題
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const content = e.target.result;
+              if (homeworkText) {
+                homeworkText.value = content;
+              }
+              // 基於文字內容生成試題
+              generateQuizFromContent(content);
+            };
+            reader.readAsText(file);
+          } else {
+            // 無法提取內容的檔案：基於檔案名稱和類型智能生成內容描述
+            const intelligentContent = generateIntelligentContent(file);
+
+            // 更新作業內容顯示
+            if (homeworkText) {
+              homeworkText.value = intelligentContent;
+            }
+
+            // 基於智能內容生成試題
+            generateQuizFromContent(intelligentContent);
+          }
+        } catch (error) {
+          console.error("上傳作業錯誤:", error);
+          showNotification("❌ " + error.message, "error");
+        }
+      }
+
+      // 根據內容生成試題的統一函數
+      async function generateQuizFromContent(content) {
+        try {
+          showNotification("🧠 正在生成相關試題...", "info");
+
+          const response = await fetch("/api/generate-quiz", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              homeworkContent: content,
+              questionCount: 3,
+            }),
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            displayQuiz(result.questions);
+            showNotification("✅ 試題生成成功！", "success");
+          } else {
+            throw new Error(result.message || "生成試題失敗");
+          }
+        } catch (error) {
+          console.error("生成試題錯誤:", error);
+          showNotification("❌ 生成試題失敗: " + error.message, "error");
+        }
+      }
+
+      // 基於檔案信息智能生成學習內容
+      function generateIntelligentContent(file) {
+        const fileName = file.name.toLowerCase();
+        const fileType = file.type;
+
+        // 分析檔案名稱中的學科關鍵詞
+        let subject = "通用學習";
+        let topics = [];
+
+        if (
+          fileName.includes("數學") ||
+          fileName.includes("math") ||
+          fileName.includes("algebra") ||
+          fileName.includes("calculus")
+        ) {
+          subject = "數學";
+          topics = [
+            "數學概念理解",
+            "計算方法應用",
+            "邏輯推理能力",
+            "問題解決技巧",
+          ];
+        } else if (
+          fileName.includes("科學") ||
+          fileName.includes("science") ||
+          fileName.includes("physics") ||
+          fileName.includes("chemistry") ||
+          fileName.includes("biology")
+        ) {
+          subject = "科學";
+          topics = [
+            "科學原理探討",
+            "實驗觀察分析",
+            "現象解釋能力",
+            "科學思維方法",
+          ];
+        } else if (fileName.includes("歷史") || fileName.includes("history")) {
+          subject = "歷史";
+          topics = [
+            "歷史事件分析",
+            "時代背景理解",
+            "因果關係探討",
+            "歷史思維培養",
+          ];
+        } else if (
+          fileName.includes("語文") ||
+          fileName.includes("中文") ||
+          fileName.includes("chinese") ||
+          fileName.includes("language")
+        ) {
+          subject = "語文";
+          topics = [
+            "語言文字理解",
+            "文章內容分析",
+            "表達技巧掌握",
+            "文學素養提升",
+          ];
+        } else if (fileName.includes("英文") || fileName.includes("english")) {
+          subject = "英語";
+          topics = [
+            "英語理解能力",
+            "語法結構分析",
+            "詞彙運用技巧",
+            "語言交流能力",
+          ];
+        } else if (
+          fileName.includes("地理") ||
+          fileName.includes("geography")
+        ) {
+          subject = "地理";
+          topics = [
+            "地理知識理解",
+            "空間思維能力",
+            "地理現象分析",
+            "環境意識培養",
+          ];
+        }
+
+        // 根據檔案類型添加特定學習重點
+        if (fileType.includes("image/")) {
+          topics.push("視覺觀察能力", "圖像分析技巧");
+        } else if (fileType.includes("pdf")) {
+          topics.push("文檔理解能力", "資訊整理技巧");
+        } else if (
+          fileType.includes("presentation") ||
+          fileName.includes("ppt")
+        ) {
+          topics.push("簡報理解能力", "資訊組織技巧");
+        } else if (
+          fileType.includes("spreadsheet") ||
+          fileName.includes("xls")
+        ) {
+          topics.push("數據分析能力", "統計思維技巧");
+        }
+
+        // 生成智能內容描述
+        const content = `學習檔案：${file.name}
+
+學科領域：${subject}
+
+主要學習重點：
+${topics.map((topic, index) => `${index + 1}. ${topic}`).join("\n")}
+
+檔案特徵分析：
+- 檔案類型：${fileType || "未知類型"}
+- 檔案大小：${(file.size / 1024).toFixed(2)} KB
+- 學習目標：通過此檔案加深對${subject}相關知識的理解和應用
+
+預期學習成果：
+透過分析和學習此檔案，學生應能夠掌握相關的基礎概念，提升分析思維能力，並能夠將學到的知識應用到實際情境中。`;
+
+        return content;
+      }
+
       function askAI() {
         const questionInput = document.getElementById("aiQuestion");
         if (!questionInput) {
@@ -839,27 +1269,247 @@
           return;
         }
 
-        const responseDiv = document.getElementById("aiResponse");
-        if (!responseDiv) {
-          showNotification("AI响应区域未找到", "error");
+        // 使用新的AI助手API
+        askAIAssistant();
+      }
+
+      // AI學習助手功能
+      async function askAIAssistant() {
+        const aiQuestion = document.getElementById("aiQuestion");
+        const aiResponse = document.getElementById("aiResponse");
+
+        if (!aiQuestion || !aiQuestion.value.trim()) {
+          showNotification("❌ 請輸入您的問題", "error");
           return;
         }
 
-        responseDiv.classList.remove("hidden");
-        responseDiv.innerHTML = `
-        <div class="flex items-start space-x-3">
-          <div class="bg-purple-100 p-2 rounded-full">
-            <i class="fas fa-robot text-purple-600"></i>
-          </div>
-          <div class="flex-1">
-            <p class="font-medium text-purple-800">AI 學習助手</p>
-            <p class="text-gray-700 mt-1">這是一個關於 "${question}" 的示範回答。在完整版本中，這裡會顯示AI生成的詳細解答，幫助您更好地理解課程內容。</p>
-            <div class="mt-3 p-2 bg-purple-50 rounded border border-purple-100">
-              <p class="text-xs text-purple-700">提示：您可以詢問具體的概念解釋、練習題幫助或學習建議。</p>
+        if (!aiResponse) {
+          showNotification("❌ 找不到回答區域", "error");
+          return;
+        }
+
+        const question = aiQuestion.value.trim();
+
+        // 顯示載入中
+        aiResponse.classList.remove("hidden");
+        aiResponse.innerHTML = `
+          <div class="text-center py-6">
+            <div class="animate-pulse">
+              <div class="flex items-center justify-center space-x-2">
+                <div class="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+                <div class="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+              </div>
+              <p class="text-purple-600 mt-3">🤖 AI正在思考您的問題...</p>
             </div>
           </div>
-        </div>
-      `;
+        `;
+
+        try {
+          const response = await fetch("/api/ai-assistant", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: question,
+              context: "學生學習輔助",
+            }),
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message || "AI助手暫時無法回答");
+          }
+
+          // 顯示AI回答
+          aiResponse.innerHTML = `
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div class="flex items-start space-x-3">
+                <div class="bg-purple-100 p-2 rounded-full">
+                  <i class="fas fa-robot text-purple-600"></i>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-purple-800 mb-2">AI 學習助手</p>
+                  <div class="text-gray-700 leading-relaxed">
+                    ${result.answer
+                      .split("\n")
+                      .map((line) => `<p class="mb-2">${line}</p>`)
+                      .join("")}
+                  </div>
+                  <div class="mt-3 text-xs text-purple-600">
+                    <i class="fas fa-clock mr-1"></i>
+                    回答時間: ${new Date(result.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // 清空問題輸入框
+          aiQuestion.value = "";
+          showNotification("✅ AI助手已回答您的問題", "success");
+        } catch (error) {
+          console.error("AI助手錯誤:", error);
+          aiResponse.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-center space-x-2 text-red-600">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>AI助手暫時無法回答: ${error.message}</span>
+              </div>
+              <button onclick="askAIAssistant()" class="mt-3 text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+                重試
+              </button>
+            </div>
+          `;
+          showNotification("❌ " + error.message, "error");
+        }
+      }
+
+      // AI助手問題示範
+      function askSampleQuestion(question) {
+        document.getElementById("aiQuestion").value = question;
+        askAIAssistant();
+      }
+
+      // === Zoom 會議功能（學生端）===
+
+      async function loadStudentMeetings() {
+        try {
+          const response = await fetch("/api/student-meetings", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            displayStudentMeetings(result.meetings);
+          } else {
+            displayNoMeetings();
+          }
+        } catch (error) {
+          console.error("載入會議錯誤:", error);
+          displayNoMeetings();
+        }
+      }
+
+      function displayStudentMeetings(meetings) {
+        const liveStreamArea = document.getElementById("liveStreamArea");
+        const joinLiveBtn = document.getElementById("joinLiveBtn");
+        const meetingInfo = document.getElementById("meetingInfo");
+
+        if (meetings.length === 0) {
+          displayNoMeetings();
+          return;
+        }
+
+        // 找到最近的會議
+        const now = new Date();
+        const upcomingMeetings = meetings.filter((meeting) => {
+          const startTime = new Date(meeting.start_time);
+          const endTime = new Date(
+            startTime.getTime() + meeting.duration * 60000
+          );
+          return endTime > now; // 還沒結束的會議
+        });
+
+        if (upcomingMeetings.length === 0) {
+          displayNoMeetings("暫無即將開始的會議");
+          return;
+        }
+
+        const nextMeeting = upcomingMeetings[0];
+        const startTime = new Date(nextMeeting.start_time);
+        const timeDiff = startTime.getTime() - now.getTime();
+        const canJoin = timeDiff <= 10 * 60 * 1000; // 開始前10分鐘可以進入
+
+        // 更新顯示
+        liveStreamArea.innerHTML = `
+          <div class="text-center">
+            <div class="text-5xl mb-4">
+              <i class="fas fa-${canJoin ? "video" : "clock"}"></i>
+            </div>
+            <p class="text-xl font-medium">${nextMeeting.title}</p>
+            <p class="text-blue-200 mt-2">
+              ${
+                canJoin
+                  ? "可以加入會議"
+                  : `開始時間: ${startTime.toLocaleString()}`
+              }
+            </p>
+            ${
+              canJoin
+                ? ""
+                : `<p class="text-sm mt-1">還有 ${Math.ceil(
+                    timeDiff / 60000
+                  )} 分鐘開始</p>`
+            }
+          </div>
+        `;
+
+        // 設置加入按鈕
+        joinLiveBtn.disabled = !canJoin;
+        joinLiveBtn.onclick = canJoin
+          ? () => joinZoomMeeting(nextMeeting.join_url)
+          : null;
+        joinLiveBtn.className = `py-3 rounded-lg transition-colors flex items-center justify-center ${
+          canJoin
+            ? "bg-green-600 text-white hover:bg-green-700"
+            : "bg-gray-400 text-gray-200 cursor-not-allowed"
+        }`;
+
+        // 顯示會議資訊
+        document.getElementById("meetingTitle").textContent = nextMeeting.title;
+        document.getElementById("teacherName").textContent =
+          nextMeeting.teacher_name;
+        document.getElementById("startTime").textContent =
+          startTime.toLocaleString();
+        meetingInfo.classList.remove("hidden");
+      }
+
+      function displayNoMeetings(message = "暫無直播課堂") {
+        const liveStreamArea = document.getElementById("liveStreamArea");
+        const joinLiveBtn = document.getElementById("joinLiveBtn");
+        const meetingInfo = document.getElementById("meetingInfo");
+
+        liveStreamArea.innerHTML = `
+          <div class="text-center">
+            <div class="text-5xl mb-4">
+              <i class="fas fa-calendar-times"></i>
+            </div>
+            <p class="text-xl font-medium">${message}</p>
+            <p class="text-blue-200 mt-2">請關注教師發布的課程安排</p>
+          </div>
+        `;
+
+        joinLiveBtn.disabled = true;
+        joinLiveBtn.className =
+          "bg-gray-400 text-gray-200 cursor-not-allowed py-3 rounded-lg transition-colors flex items-center justify-center";
+        meetingInfo.classList.add("hidden");
+      }
+
+      function joinZoomMeeting(joinUrl) {
+        if (joinUrl) {
+          window.open(joinUrl, "_blank");
+          showNotification("✅ 正在打開 Zoom 會議...", "success");
+        } else {
+          showNotification("❌ 會議連結無效", "error");
+        }
+      }
+
+      function testAudio() {
+        showNotification("🔊 音訊測試：請確保您的麥克風和喇叭正常工作", "info");
+
+        // 簡單的音訊測試提示
+        setTimeout(() => {
+          showNotification(
+            "💡 提示：加入會議後可以在 Zoom 中進行完整的音訊測試",
+            "info"
+          );
+        }, 2000);
       }
 
       // 聊天功能
@@ -1414,6 +2064,10 @@
       function initStudentRoom() {
         console.log("DOM加载完成，开始初始化...");
         init();
+        // 載入學生可參加的會議
+        loadStudentMeetings();
+        // 每分鐘檢查一次會議狀態
+        setInterval(loadStudentMeetings, 60000);
       }
 
       // 初始化页面

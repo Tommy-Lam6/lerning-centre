@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "npx ts-node server.ts",
-    "build": "npx tsc && cp -r public dist/",
+    "build": "npx tsc && cp -r public dist/ && mkdir -p dist/uploads && cp -r uploads/* dist/uploads/ 2>/dev/null || true",
     "clean": "rm -rf dist",
     "rebuild": "npm run clean && npm run build",
     "server": "npm run build && npm start",
@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+    "mammoth": "^1.11.0",
     "multer": "^2.0.2",
     "sqlite3": "^5.1.7"
   },

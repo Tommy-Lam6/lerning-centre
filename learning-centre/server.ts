@@ -11,6 +11,7 @@ import path from "path";
 import session from "express-session";
 import multer from "multer";
 import fs from "fs";
+import mammoth from "mammoth";
 
 // --- 擴展 express-session 的 SessionData 型別 ---
 declare module "express-session" {
@@ -1013,6 +1014,625 @@ app.get("/student", requireLogin, requireRole("student"), (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+// === 文件上傳 API ===
+import { upload } from "./upload";
+
+// 作業上傳端點
+app.post(
+  "/upload-homework",
+  requireLogin,
+  requireRole("student"),
+  upload.single("homework"),
+  async (req, res) => {
+    console.log(`📁 學生 ${req.session.userId} 上傳作業文件`);
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "請選擇要上傳的文件",
+      });
+    }
+
+    try {
+      const fileInfo = {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        path: `/uploads/${req.file.filename}`,
+        uploadTime: new Date().toISOString(),
+        studentId: req.session.userId,
+      };
+
+      // 嘗試提取文檔內容
+      let extractedContent = null;
+
+      if (
+        req.file.mimetype ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        req.file.originalname.endsWith(".docx")
+      ) {
+        try {
+          console.log(`📄 正在提取 DOCX 文件內容: ${req.file.originalname}`);
+          const result = await mammoth.extractRawText({ path: req.file.path });
+          extractedContent = result.value;
+          console.log(`✅ 成功提取內容，長度: ${extractedContent.length} 字符`);
+        } catch (extractError) {
+          console.log(
+            `⚠️ 提取 DOCX 內容失敗: ${
+              extractError instanceof Error
+                ? extractError.message
+                : String(extractError)
+            }`
+          );
+        }
+      }
+
+      res.json({
+        success: true,
+        file: fileInfo,
+        extractedContent: extractedContent,
+        message: "作業文件上傳成功",
+      });
+    } catch (error) {
+      console.error("❌ 上傳作業錯誤:", error);
+      res.status(500).json({
+        success: false,
+        message: "文件上傳失敗",
+      });
+    }
+  }
+);
+
+// === AI 功能 API ===
+
+// 自動生成試題 API
+app.post(
+  "/api/generate-quiz",
+  requireLogin,
+  requireRole("student"),
+  (req, res) => {
+    const { homeworkContent, questionCount = 3 } = req.body;
+
+    console.log(`🧠 學生 ${req.session.userId} 請求生成試題`);
+
+    if (!homeworkContent) {
+      return res.status(400).json({
+        success: false,
+        message: "需要提供作業內容",
+      });
+    }
+
+    try {
+      // 簡單的試題生成邏輯（模擬AI生成）
+      const questions = generateQuestions(homeworkContent, questionCount);
+
+      res.json({
+        success: true,
+        questions: questions,
+        message: "試題生成成功",
+      });
+    } catch (error) {
+      console.error("❌ 生成試題錯誤:", error);
+      res.status(500).json({
+        success: false,
+        message: "試題生成失敗",
+      });
+    }
+  }
+);
+
+// AI 學習助手 API
+app.post(
+  "/api/ai-assistant",
+  requireLogin,
+  requireRole("student"),
+  (req, res) => {
+    const { question, context } = req.body;
+
+    console.log(`🤖 學生 ${req.session.userId} 詢問AI助手: ${question}`);
+
+    if (!question) {
+      return res.status(400).json({
+        success: false,
+        message: "請提供問題",
+      });
+    }
+
+    try {
+      // 簡單的AI回答生成（模擬AI回答）
+      const answer = generateAIResponse(question, context);
+
+      res.json({
+        success: true,
+        answer: answer,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("❌ AI助手錯誤:", error);
+      res.status(500).json({
+        success: false,
+        message: "AI助手暫時無法回答",
+      });
+    }
+  }
+);
+
+// Zoom API 整合
+app.post(
+  "/api/create-zoom-meeting",
+  requireLogin,
+  requireRole("teacher"),
+  async (req, res) => {
+    const { title, startTime, duration = 60, description } = req.body;
+
+    console.log(`📹 教師 ${req.session.userId} 創建Zoom會議: ${title}`);
+
+    if (!title || !startTime) {
+      return res.status(400).json({
+        success: false,
+        message: "需要提供會議標題和開始時間",
+      });
+    }
+
+    try {
+      // 模擬創建Zoom會議（實際需要Zoom API）
+      const meeting = {
+        id: Date.now().toString(),
+        title,
+        startTime,
+        duration,
+        description,
+        joinUrl: `https://zoom.us/j/${Date.now()}`,
+        meetingId: Date.now().toString(),
+        password: Math.random().toString(36).substring(2, 8),
+        teacherId: req.session.userId,
+        created: new Date().toISOString(),
+      };
+
+      // 保存會議資訊到資料庫（簡化版）
+      try {
+        const result = db
+          .prepare(
+            `
+        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `
+          )
+          .run(
+            meeting.meetingId,
+            title,
+            startTime,
+            duration,
+            meeting.joinUrl,
+            meeting.password,
+            req.session.userId,
+            description
+          );
+
+        meeting.id = result.lastInsertRowid.toString();
+      } catch (dbError) {
+        console.log("📝 Zoom會議表可能不存在，創建中...");
+        // 如果表不存在，先創建表
+        db.exec(`
+        CREATE TABLE IF NOT EXISTS zoom_meetings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          meeting_id TEXT UNIQUE,
+          title TEXT NOT NULL,
+          start_time TEXT NOT NULL,
+          duration INTEGER DEFAULT 60,
+          join_url TEXT,
+          password TEXT,
+          teacher_id INTEGER,
+          description TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+        const result = db
+          .prepare(
+            `
+        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `
+          )
+          .run(
+            meeting.meetingId,
+            title,
+            startTime,
+            duration,
+            meeting.joinUrl,
+            meeting.password,
+            req.session.userId,
+            description
+          );
+
+        meeting.id = result.lastInsertRowid.toString();
+      }
+
+      res.json({
+        success: true,
+        meeting: meeting,
+        message: "Zoom會議創建成功",
+      });
+    } catch (error) {
+      console.error("❌ 創建Zoom會議錯誤:", error);
+      res.status(500).json({
+        success: false,
+        message: "創建會議失敗",
+      });
+    }
+  }
+);
+
+// 獲取教師的Zoom會議列表
+app.get(
+  "/api/zoom-meetings",
+  requireLogin,
+  requireRole("teacher"),
+  (req, res) => {
+    try {
+      const meetings = db
+        .prepare(
+          `
+      SELECT * FROM zoom_meetings 
+      WHERE teacher_id = ? 
+      ORDER BY start_time DESC
+    `
+        )
+        .all(req.session.userId);
+
+      res.json({
+        success: true,
+        meetings: meetings,
+      });
+    } catch (error) {
+      // 如果表不存在，返回空陣列
+      res.json({
+        success: true,
+        meetings: [],
+      });
+    }
+  }
+);
+
+// 獲取學生可參加的會議
+app.get(
+  "/api/student-meetings",
+  requireLogin,
+  requireRole("student"),
+  (req, res) => {
+    try {
+      // 獲取學生選修課程的教師創建的會議
+      const meetings = db
+        .prepare(
+          `
+      SELECT zm.*, u.username as teacher_name, c.name as course_name
+      FROM zoom_meetings zm
+      JOIN users u ON zm.teacher_id = u.id
+      JOIN courses c ON c.teacher_id = u.id
+      JOIN enrollments e ON e.course_id = c.id
+      WHERE e.student_id = ?
+      AND datetime(zm.start_time) >= datetime('now', '-2 hours')
+      ORDER BY zm.start_time ASC
+    `
+        )
+        .all(req.session.userId);
+
+      res.json({
+        success: true,
+        meetings: meetings,
+      });
+    } catch (error) {
+      res.json({
+        success: true,
+        meetings: [],
+      });
+    }
+  }
+);
+
+// === 輔助函數 ===
+
+function generateQuestions(content: string, count: number) {
+  console.log("🔍 開始從內容中提取問題...");
+  console.log("📄 內容長度:", content.length);
+
+  // 首先嘗試從內容中提取實際的問題
+  const extractedQuestions = extractQuestionsFromContent(content);
+
+  if (extractedQuestions.length > 0) {
+    console.log(`✅ 成功從內容中提取到 ${extractedQuestions.length} 個問題`);
+    return extractedQuestions;
+  }
+
+  console.log("ℹ️ 內容中沒有找到問題，返回空陣列");
+  return [];
+}
+
+// 從文件內容中提取實際問題的函數
+function extractQuestionsFromContent(content: string) {
+  const questions: any[] = [];
+  let questionId = 1;
+
+  // 檢查是否是檔案信息格式，如果是則跳過
+  if (content.includes("檔案名稱：") || content.includes("檔案類型：")) {
+    console.log("⚠️ 檢測到檔案信息格式，無法提取問題");
+    return [];
+  }
+
+  // 多種問題格式的正則表達式
+  const questionPatterns = [
+    // 匹配 "1. 問題內容？" 或 "1、問題內容？" 或 "一、問題內容？"
+    /(?:^|\n)[\s]*(?:\d+[.、]|[一二三四五六七八九十]+[、.])\s*([^?\n]*\?[^?\n]*)/gm,
+    // 匹配 "問題：內容？" 或 "Question: 內容？"
+    /(?:^|\n)[\s]*(?:問題|題目|Question|Q)[\s]*[:：]\s*([^?\n]*\?[^?\n]*)/gim,
+    // 匹配獨立的問句（以？結尾的句子）
+    /(?:^|\n)[\s]*([^?\n。！]{10,}[？?])/gm,
+    // 匹配 "(1) 問題內容？" 格式
+    /(?:^|\n)[\s]*\([^\)]+\)\s*([^?\n]*\?[^?\n]*)/gm,
+  ];
+
+  console.log("🔍 使用多種模式搜索問題...");
+
+  questionPatterns.forEach((pattern, patternIndex) => {
+    const matches = content.matchAll(pattern);
+    for (const match of matches) {
+      const questionText = match[1]?.trim();
+      if (
+        questionText &&
+        questionText.length > 5 &&
+        questionText.length < 200
+      ) {
+        // 清理問題文本
+        const cleanedQuestion = questionText
+          .replace(/^\d+[.、]\s*/, "") // 移除開頭的編號
+          .replace(/^[一二三四五六七八九十]+[、.]\s*/, "") // 移除中文編號
+          .replace(/^(?:問題|題目|Question|Q)[\s]*[:：]\s*/i, "") // 移除問題標籤
+          .trim();
+
+        if (cleanedQuestion.length > 5) {
+          questions.push({
+            id: questionId++,
+            type: "short-answer",
+            question: cleanedQuestion,
+            explanation: "這是從您的作業文件中提取的問題",
+          });
+
+          console.log(
+            `📝 提取到問題 ${questionId - 1}: ${cleanedQuestion.substring(
+              0,
+              50
+            )}...`
+          );
+        }
+      }
+    }
+  });
+
+  // 去重（基於問題內容的相似性）
+  const uniqueQuestions: any[] = [];
+  for (const question of questions) {
+    const isDuplicate = uniqueQuestions.some((existing: any) => {
+      const similarity = calculateSimilarity(
+        existing.question,
+        question.question
+      );
+      return similarity > 0.8; // 80% 相似度視為重複
+    });
+
+    if (!isDuplicate) {
+      uniqueQuestions.push(question);
+    }
+  }
+
+  console.log(`✅ 最終提取到 ${uniqueQuestions.length} 個唯一問題`);
+  return uniqueQuestions;
+}
+
+// 簡單的文本相似度計算
+function calculateSimilarity(text1: string, text2: string): number {
+  const words1 = text1.toLowerCase().split(/\s+/);
+  const words2 = text2.toLowerCase().split(/\s+/);
+
+  const intersection = words1.filter((word) => words2.includes(word));
+  const union = [...new Set([...words1, ...words2])];
+
+  return intersection.length / union.length;
+}
+
+// 提取內容關鍵詞的輔助函數
+function extractKeywords(content: string): string[] {
+  // 檢查是否是檔案信息格式
+  if (content.includes("檔案名稱：") || content.includes("檔案類型：")) {
+    return extractFileKeywords(content);
+  }
+
+  // 一般文字內容的關鍵詞提取
+  const commonWords = [
+    "的",
+    "是",
+    "了",
+    "在",
+    "有",
+    "和",
+    "與",
+    "及",
+    "或",
+    "但",
+    "如果",
+    "因為",
+    "所以",
+    "這",
+    "那",
+    "我",
+    "你",
+    "他",
+    "她",
+    "它",
+    "檔案",
+    "名稱",
+    "類型",
+    "大小",
+    "KB",
+    "MB",
+    "已",
+    "上傳",
+  ];
+
+  // 移除標點符號並分割單詞
+  const words = content
+    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 1 && !commonWords.includes(word))
+    .slice(0, 10); // 取前10個關鍵詞
+
+  // 如果沒有找到關鍵詞，使用預設詞彙
+  if (words.length === 0) {
+    return ["學習重點", "知識概念", "核心理論", "實踐應用", "分析方法"];
+  }
+
+  return words;
+}
+
+// 從檔案信息中提取關鍵詞
+function extractFileKeywords(fileInfo: string): string[] {
+  const keywords = [];
+
+  // 提取檔案名稱中的關鍵詞
+  const nameMatch = fileInfo.match(/檔案名稱：(.+)/);
+  if (nameMatch) {
+    const fileName = nameMatch[1].trim();
+
+    // 根據檔案擴展名確定學科領域
+    if (fileName.match(/\.(pdf|doc|docx)$/i)) {
+      keywords.push("文件分析", "內容理解", "重點摘要");
+    } else if (fileName.match(/\.(jpg|jpeg|png|gif|bmp)$/i)) {
+      keywords.push("圖像識別", "視覺分析", "觀察能力");
+    } else if (fileName.match(/\.(mp3|wav|mp4|avi)$/i)) {
+      keywords.push("多媒體理解", "內容分析", "感知能力");
+    } else if (fileName.match(/\.(xls|xlsx|csv)$/i)) {
+      keywords.push("數據分析", "統計概念", "表格理解");
+    } else if (fileName.match(/\.(ppt|pptx)$/i)) {
+      keywords.push("簡報技巧", "內容組織", "表達能力");
+    } else if (fileName.match(/\.(txt|md)$/i)) {
+      keywords.push("文字處理", "內容分析", "理解能力");
+    }
+
+    // 從檔案名稱中提取學科相關詞彙
+    if (fileName.includes("數學") || fileName.includes("math")) {
+      keywords.push("數學概念", "計算方法", "邏輯思維");
+    } else if (fileName.includes("科學") || fileName.includes("science")) {
+      keywords.push("科學原理", "實驗方法", "觀察分析");
+    } else if (fileName.includes("歷史") || fileName.includes("history")) {
+      keywords.push("歷史事件", "時間概念", "因果關係");
+    } else if (fileName.includes("語文") || fileName.includes("language")) {
+      keywords.push("語言理解", "文字表達", "溝通技巧");
+    } else if (fileName.includes("英文") || fileName.includes("english")) {
+      keywords.push("英語學習", "語法結構", "詞彙運用");
+    }
+  }
+
+  // 如果沒有提取到特定關鍵詞，使用通用關鍵詞
+  if (keywords.length === 0) {
+    keywords.push("檔案分析", "學習內容", "知識理解", "學習方法", "作業要求");
+  }
+
+  return keywords.slice(0, 5); // 限制關鍵詞數量
+}
+
+function generateAIResponse(question: string, context?: string) {
+  // 改進的AI回答生成邏輯
+  const lowerQuestion = question.toLowerCase();
+
+  // 分析問題類型和關鍵詞
+  if (
+    lowerQuestion.includes("你好") ||
+    lowerQuestion.includes("您好") ||
+    lowerQuestion.includes("hello")
+  ) {
+    return "您好！我是您的AI學習助手，很高興為您服務！🤖 請隨時告訴我您的學習問題，我會盡力幫助您。";
+  }
+
+  if (lowerQuestion.includes("作業") || lowerQuestion.includes("homework")) {
+    return `關於作業問題，我建議您可以這樣思考：
+
+📝 **作業分析步驟：**
+1. 仔細閱讀題目要求
+2. 分析相關概念和理論
+3. 組織答案結構
+4. 檢查邏輯完整性
+
+💡 **提示：** 如果您能提供具體的作業內容，我可以給出更詳細的指導建議。`;
+  }
+
+  if (
+    lowerQuestion.includes("概念") ||
+    lowerQuestion.includes("理論") ||
+    lowerQuestion.includes("定義")
+  ) {
+    return `這是一個很好的概念性問題！🧠
+
+**學習概念的有效方法：**
+• 理解定義的核心要點
+• 找出概念之間的聯繫
+• 結合實際例子來理解
+• 嘗試用自己的話解釋
+
+如果您能告訴我具體是哪個概念，我可以提供更針對性的説明。`;
+  }
+
+  if (
+    lowerQuestion.includes("如何") ||
+    lowerQuestion.includes("怎麼") ||
+    lowerQuestion.includes("怎樣")
+  ) {
+    return `您問的是方法類問題，我來為您提供系統性的建議：
+
+🎯 **問題解決步驟：**
+1. 明確目標和要求
+2. 分析現有條件
+3. 制定解決方案
+4. 執行並驗證結果
+
+請告訴我您具體想了解什麼方法，我可以給您更詳細的指導。`;
+  }
+
+  if (
+    lowerQuestion.includes("為什麼") ||
+    lowerQuestion.includes("為何") ||
+    lowerQuestion.includes("原因")
+  ) {
+    return `您提出了一個探究原因的問題，這很好！🔍
+
+**分析原因的思路：**
+• 從現象看本質
+• 分析前因後果
+• 考慮多個影響因素
+• 尋找關鍵節點
+
+如果您能提供更多背景信息，我可以幫您進行更深入的分析。`;
+  }
+
+  // 預設回答
+  const contextInfo = context
+    ? `\n\n📋 **相關內容：** ${context.substring(0, 100)}${
+        context.length > 100 ? "..." : ""
+      }`
+    : "";
+
+  return `謝謝您的問題！我理解您想了解："${question}"
+
+🤖 **我的建議：**
+• 可以從多個角度來分析這個問題
+• 建議結合理論知識和實際應用
+• 如果有具體例子會更容易理解
+
+💬 **互動提示：** 您可以提供更多詳細信息，這樣我就能給出更精確的回答。比如：
+- 這個問題的具體背景
+- 您目前的理解程度
+- 遇到的具體困難${contextInfo}`;
+}
 
 // === 導入房間路由 ===
 import { roomRoutes } from "./room";

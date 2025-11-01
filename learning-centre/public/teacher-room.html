@@ -273,6 +273,7 @@
                   <div>
                     <label class="block mb-2 text-gray-700">課堂標題：</label>
                     <input
+                      id="liveTitle"
                       type="text"
                       class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       placeholder="輸入課堂標題"
@@ -284,14 +285,31 @@
                       >設定課堂日期時間：</label
                     >
                     <input
+                      id="liveDateTime"
                       type="datetime-local"
                       class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     />
                   </div>
 
                   <div>
+                    <label class="block mb-2 text-gray-700"
+                      >課堂時長（分鐘）：</label
+                    >
+                    <input
+                      id="liveDuration"
+                      type="number"
+                      min="15"
+                      max="480"
+                      value="60"
+                      class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="課堂時長"
+                    />
+                  </div>
+
+                  <div>
                     <label class="block mb-2 text-gray-700">課堂描述：</label>
                     <textarea
+                      id="liveDescription"
                       class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       rows="3"
                       placeholder="課堂內容描述"
@@ -299,10 +317,37 @@
                   </div>
 
                   <button
+                    id="startLiveBtn"
+                    onclick="createZoomMeeting()"
                     class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
                   >
-                    <i class="fas fa-broadcast-tower mr-2"></i>開始直播
+                    <i class="fas fa-video mr-2"></i>創建 Zoom 會議
                   </button>
+
+                  <div
+                    id="meetingInfo"
+                    class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                  >
+                    <h4 class="font-semibold text-blue-800 mb-2">會議資訊</h4>
+                    <div class="space-y-2 text-sm">
+                      <div class="flex justify-between">
+                        <span>會議 ID:</span>
+                        <span id="meetingId" class="font-mono"></span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>密碼:</span>
+                        <span id="meetingPassword" class="font-mono"></span>
+                      </div>
+                      <div class="mt-3">
+                        <button
+                          id="joinMeetingBtn"
+                          class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                        >
+                          <i class="fas fa-external-link-alt mr-2"></i>加入會議
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div>
@@ -744,6 +789,12 @@
           // 顯示默認區域
           showSection("materials");
 
+          // 設定預設時間
+          setDefaultDateTime();
+
+          // 載入 Zoom 會議列表
+          await loadZoomMeetings();
+
           // 模擬實時消息更新
           setInterval(() => {
             if (Math.random() > 0.7) {
@@ -1127,6 +1178,148 @@
       }
 
       // 課程統計功能
+      // === Zoom 會議功能 ===
+
+      async function createZoomMeeting() {
+        const titleInput = document.getElementById("liveTitle");
+        const dateTimeInput = document.getElementById("liveDateTime");
+        const durationInput = document.getElementById("liveDuration");
+        const descriptionInput = document.getElementById("liveDescription");
+        const startBtn = document.getElementById("startLiveBtn");
+        const meetingInfo = document.getElementById("meetingInfo");
+
+        // 驗證輸入
+        if (!titleInput.value.trim()) {
+          showNotification("❌ 請輸入課堂標題", "error");
+          return;
+        }
+
+        if (!dateTimeInput.value) {
+          showNotification("❌ 請選擇課堂時間", "error");
+          return;
+        }
+
+        // 檢查時間是否是未來時間
+        const selectedTime = new Date(dateTimeInput.value);
+        const now = new Date();
+        if (selectedTime <= now) {
+          showNotification("❌ 請選擇未來的時間", "error");
+          return;
+        }
+
+        // 顯示載入狀態
+        startBtn.disabled = true;
+        startBtn.innerHTML = `
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+          創建中...
+        `;
+
+        try {
+          const response = await fetch("/api/create-zoom-meeting", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              title: titleInput.value.trim(),
+              startTime: dateTimeInput.value,
+              duration: parseInt(durationInput.value) || 60,
+              description: descriptionInput.value.trim(),
+            }),
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message || "創建會議失敗");
+          }
+
+          // 顯示會議資訊
+          const meeting = result.meeting;
+          document.getElementById("meetingId").textContent = meeting.meetingId;
+          document.getElementById("meetingPassword").textContent =
+            meeting.password;
+
+          // 設置加入會議按鈕
+          const joinBtn = document.getElementById("joinMeetingBtn");
+          joinBtn.onclick = () => window.open(meeting.joinUrl, "_blank");
+
+          meetingInfo.classList.remove("hidden");
+          showNotification("✅ Zoom 會議創建成功！", "success");
+
+          // 重置按鈕
+          startBtn.disabled = false;
+          startBtn.innerHTML = `
+            <i class="fas fa-video mr-2"></i>創建 Zoom 會議
+          `;
+
+          // 清空表單
+          titleInput.value = "";
+          dateTimeInput.value = "";
+          durationInput.value = "60";
+          descriptionInput.value = "";
+
+          // 載入會議列表
+          await loadZoomMeetings();
+        } catch (error) {
+          console.error("創建 Zoom 會議錯誤:", error);
+          showNotification("❌ " + error.message, "error");
+
+          // 重置按鈕
+          startBtn.disabled = false;
+          startBtn.innerHTML = `
+            <i class="fas fa-video mr-2"></i>創建 Zoom 會議
+          `;
+        }
+      }
+
+      // 載入 Zoom 會議列表
+      async function loadZoomMeetings() {
+        try {
+          const response = await fetch("/api/zoom-meetings", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            displayZoomMeetings(result.meetings);
+          }
+        } catch (error) {
+          console.error("載入會議列表錯誤:", error);
+        }
+      }
+
+      // 顯示 Zoom 會議列表
+      function displayZoomMeetings(meetings) {
+        // 可以在未來增加會議列表顯示功能
+        console.log("教師的會議列表:", meetings);
+      }
+
+      // 設定預設時間為當前時間
+      function setDefaultDateTime() {
+        const dateTimeInput = document.getElementById("liveDateTime");
+        if (dateTimeInput) {
+          const now = new Date();
+          // 設定為下一個小時
+          now.setHours(now.getHours() + 1);
+          now.setMinutes(0);
+          now.setSeconds(0);
+
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, "0");
+          const day = String(now.getDate()).padStart(2, "0");
+          const hours = String(now.getHours()).padStart(2, "0");
+          const minutes = String(now.getMinutes()).padStart(2, "0");
+
+          dateTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+      }
+
+      // === 課程統計功能 ===
+
       async function loadCourseStats() {
         try {
           const response = await fetch(
