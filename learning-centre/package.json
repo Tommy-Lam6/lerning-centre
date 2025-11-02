@@ -25,6 +25,7 @@
     "express-session": "^1.18.2",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
+    "pdf2json": "^4.0.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

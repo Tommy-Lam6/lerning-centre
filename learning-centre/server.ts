@@ -12,6 +12,7 @@ import session from "express-session";
 import multer from "multer";
 import fs from "fs";
 import mammoth from "mammoth";
+const PDF2JSON = require("pdf2json");
 
 // --- 擴展 express-session 的 SessionData 型別 ---
 declare module "express-session" {
@@ -52,125 +53,33 @@ app.use(
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// add remaining tables and seed rows in one exec
+// === 驗證資料庫初始化完成 ===
 try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS materials (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      room_id INTEGER,
-      title TEXT,
-      url TEXT,
-      type TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (room_id) REFERENCES rooms(id)
-    );
+  console.log("\n🔍 驗證資料庫初始化狀態:");
 
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      room_id INTEGER,
-      user_id INTEGER,
-      text TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (room_id) REFERENCES rooms(id),
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    );
+  const userCount = db
+    .prepare("SELECT COUNT(*) as count FROM users")
+    .get() as any;
+  console.log(`   👥 用戶數: ${userCount.count}`);
 
-    CREATE TABLE IF NOT EXISTS homework (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      room_id INTEGER,
-      title TEXT,
-      description TEXT,
-      deadline DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (room_id) REFERENCES rooms(id)
-    );
+  const courseCount = db
+    .prepare("SELECT COUNT(*) as count FROM courses")
+    .get() as any;
+  console.log(`   � 課程數: ${courseCount.count}`);
 
-    CREATE TABLE IF NOT EXISTS homework_submissions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      homework_id INTEGER,
-      student_id INTEGER,
-      file_url TEXT,
-      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      grade INTEGER,
-      feedback TEXT,
-      FOREIGN KEY (homework_id) REFERENCES homework(id),
-      FOREIGN KEY (student_id) REFERENCES users(id)
-    );
+  const enrollmentCount = db
+    .prepare("SELECT COUNT(*) as count FROM enrollments")
+    .get() as any;
+  console.log(`   🎓 選課記錄數: ${enrollmentCount.count}`);
 
-    INSERT OR REPLACE INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin');
-    INSERT OR REPLACE INTO users (username, password, role) VALUES ('teacher1', 'teacher123', 'teacher');
-    INSERT OR REPLACE INTO users (username, password, role) VALUES ('student1', 'student123', 'student');
-  `);
+  const roomCount = db
+    .prepare("SELECT COUNT(*) as count FROM rooms")
+    .get() as any;
+  console.log(`   🏠 房間數: ${roomCount.count}`);
 
-  // 驗證種子用戶是否正確插入
-  const adminUser = db
-    .prepare("SELECT * FROM users WHERE username = ?")
-    .get("admin") as any;
-  const teacherUser = db
-    .prepare("SELECT * FROM users WHERE username = ?")
-    .get("teacher1") as any;
-  const studentUser = db
-    .prepare("SELECT * FROM users WHERE username = ?")
-    .get("student1") as any;
-
-  console.log("🔍 驗證種子用戶:");
-  console.log(
-    "   👨‍💼 管理員:",
-    adminUser ? `${adminUser.username}/${adminUser.password}` : "❌ 不存在"
-  );
-  console.log(
-    "   👨‍🏫 教師:",
-    teacherUser
-      ? `${teacherUser.username}/${teacherUser.password}`
-      : "❌ 不存在"
-  );
-  console.log(
-    "   👨‍🎓 學生:",
-    studentUser
-      ? `${studentUser.username}/${studentUser.password}`
-      : "❌ 不存在"
-  );
+  console.log("✅ 資料庫已初始化完成\n");
 } catch (err) {
-  console.error("❌ 初始化額外資料表或插入種子數據失敗:", err);
-}
-
-// === 修復數據表結構 ===
-try {
-  // 嘗試添加 enrolled_at 欄位（如果已存在則捕獲錯誤）
-  try {
-    db.prepare(
-      `ALTER TABLE enrollments ADD COLUMN enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP`
-    ).run();
-    console.log("✅ 成功修復 enrollments 表，添加 enrolled_at 欄位");
-  } catch (e: any) {
-    // better-sqlite3 會拋出錯誤，如果是欄位已存在，記錄並繼續
-    console.log(
-      "ℹ️ enrollments 表已包含 enrolled_at 欄位或修改失敗:",
-      e && e.message ? e.message : e
-    );
-  }
-
-  // 檢查並列出表結構/樣本數據
-  console.log("\n🔧 檢查數據表完整性...");
-  try {
-    const columns = db.prepare("PRAGMA table_info(enrollments)").all() as any[];
-    console.log("📋 enrollments 表欄位:");
-    columns.forEach((col) => {
-      console.log(`   - ${col.name} (${col.type})`);
-    });
-
-    const enrollments = db
-      .prepare("SELECT * FROM enrollments LIMIT 5")
-      .all() as any[];
-    console.log(`📊 當前選課記錄: ${enrollments.length} 條`);
-    enrollments.forEach((enroll) => {
-      console.log(`   課程 ${enroll.course_id} -> 學生 ${enroll.student_id}`);
-    });
-  } catch (e) {
-    console.error("❌ 檢查 enrollments 表或查詢樣本數據失敗:", e);
-  }
-} catch (err) {
-  console.error("❌ 修復數據表結構過程中發生錯誤:", err);
+  console.error("❌ 驗證資料庫狀態失敗:", err);
 }
 
 // === 文件上傳設定 ===
@@ -180,6 +89,15 @@ try {
 import { requireLogin, requireRole } from "./auth";
 
 // === 登入 API ===
+let select_user_for_login = db.prepare<
+  { username: string; password: string },
+  { id: number; role: string }
+>(
+  /* sql */
+  `SELECT id, role
+   FROM users
+   WHERE username = :username AND password = :password`
+);
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -188,22 +106,20 @@ app.post("/login", (req, res) => {
   }
 
   try {
-    const row = db
-      .prepare("SELECT * FROM users WHERE username = ? AND password = ?")
-      .get(username, password) as any;
+    const row = select_user_for_login.get({ username, password });
     if (!row) {
       return res.json({ success: false, message: "帳號或密碼錯誤" });
     }
 
     // Set session and respond on successful login
     req.session.userId = row.id;
-    req.session.username = row.username;
+    req.session.username = username;
     req.session.role = row.role;
     return res.json({
       success: true,
       message: "登入成功",
       role: row.role,
-      user: { id: row.id, username: row.username, role: row.role },
+      user: { id: row.id, username: username, role: row.role },
     });
   } catch (err) {
     console.error("❌ 登入錯誤:", err);
@@ -327,6 +243,198 @@ app.get(
     }
   }
 );
+
+// === 用戶管理 API ===
+
+// 新增用戶
+app.post("/users", requireLogin, requireRole("admin"), (req, res) => {
+  const { username, password, role } = req.body;
+
+  if (!username || !password || !role) {
+    return res.status(400).json({
+      success: false,
+      message: "帳號、密碼和角色為必填項",
+    });
+  }
+
+  // 驗證角色
+  const validRoles = ["student", "teacher", "admin"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "無效的角色",
+    });
+  }
+
+  try {
+    // 檢查帳號是否已存在
+    const existingUser = db
+      .prepare("SELECT id FROM users WHERE username = ?")
+      .get(username) as any;
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "此帳號已存在",
+      });
+    }
+
+    // 插入新用戶
+    const result = db
+      .prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")
+      .run(username, password, role);
+
+    console.log(`✅ 新用戶已建立: ${username}, 角色: ${role}`);
+
+    res.json({
+      success: true,
+      message: "用戶新增成功",
+      user: {
+        id: result.lastInsertRowid,
+        username,
+        role,
+      },
+    });
+  } catch (err) {
+    console.error("❌ 新增用戶錯誤:", err);
+    res.status(500).json({
+      success: false,
+      message: "伺服器錯誤",
+    });
+  }
+});
+
+// 刪除用戶
+app.delete("/users/:id", requireLogin, requireRole("admin"), (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  if (isNaN(userId) || userId <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "無效的用戶ID",
+    });
+  }
+
+  try {
+    // 防止刪除當前登入的用戶
+    if (userId === req.session.userId) {
+      return res.status(400).json({
+        success: false,
+        message: "不能刪除自己",
+      });
+    }
+
+    // 檢查用戶是否存在
+    const user = db
+      .prepare("SELECT id, username FROM users WHERE id = ?")
+      .get(userId) as any;
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "用戶不存在",
+      });
+    }
+
+    // 刪除用戶
+    db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+
+    console.log(`✅ 用戶已刪除: ${user.username}`);
+
+    res.json({
+      success: true,
+      message: "用戶刪除成功",
+    });
+  } catch (err) {
+    console.error("❌ 刪除用戶錯誤:", err);
+    res.status(500).json({
+      success: false,
+      message: "伺服器錯誤",
+    });
+  }
+});
+
+// 編輯用戶
+app.put("/users/:id", requireLogin, requireRole("admin"), (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { username, password, role } = req.body;
+
+  if (isNaN(userId) || userId <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "無效的用戶ID",
+    });
+  }
+
+  if (!username || !role) {
+    return res.status(400).json({
+      success: false,
+      message: "帳號和角色為必填項",
+    });
+  }
+
+  const validRoles = ["student", "teacher", "admin"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "無效的角色",
+    });
+  }
+
+  try {
+    // 檢查用戶是否存在
+    const user = db
+      .prepare("SELECT id FROM users WHERE id = ?")
+      .get(userId) as any;
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "用戶不存在",
+      });
+    }
+
+    // 檢查新帳號是否與其他用戶重複
+    const existingUser = db
+      .prepare("SELECT id FROM users WHERE username = ? AND id != ?")
+      .get(username, userId) as any;
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "此帳號已被其他用戶使用",
+      });
+    }
+
+    // 更新用戶
+    if (password) {
+      db.prepare(
+        "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?"
+      ).run(username, password, role, userId);
+    } else {
+      db.prepare("UPDATE users SET username = ?, role = ? WHERE id = ?").run(
+        username,
+        role,
+        userId
+      );
+    }
+
+    console.log(
+      `✅ 用戶已更新: ID ${userId}, 新帳號: ${username}, 角色: ${role}`
+    );
+
+    res.json({
+      success: true,
+      message: "用戶更新成功",
+    });
+  } catch (err) {
+    console.error("❌ 編輯用戶錯誤:", err);
+    res.status(500).json({
+      success: false,
+      message: "伺服器錯誤",
+    });
+  }
+});
 
 // === 管理員專用 API ===
 
@@ -1066,6 +1174,48 @@ app.post(
             }`
           );
         }
+      } else if (
+        req.file.mimetype === "application/pdf" ||
+        req.file.originalname.endsWith(".pdf")
+      ) {
+        try {
+          console.log(`📄 正在提取 PDF 文件內容: ${req.file.originalname}`);
+          const dataBuffer = fs.readFileSync(req.file.path);
+          const pdfParser = new PDF2JSON();
+
+          // 使用Promise包裝非同步操作
+          extractedContent = await new Promise<string>((resolve, reject) => {
+            pdfParser.on("pdfParser_dataError", (errData: any) => {
+              console.log(`⚠️ PDF 解析錯誤: ${errData}`);
+              reject(new Error(errData));
+            });
+
+            pdfParser.on("pdfParser_dataReady", () => {
+              const pdfData = pdfParser.getRawTextContent();
+              console.log(`✅ 成功提取 PDF 內容，長度: ${pdfData.length} 字符`);
+              console.log(`📄 PDF 內容前200字符: ${pdfData.substring(0, 200)}`);
+              resolve(pdfData || "");
+            });
+
+            if (req.file) {
+              pdfParser.loadPDF(req.file.path);
+            }
+
+            // 設定超時防止永久等待
+            setTimeout(() => {
+              reject(new Error("PDF 提取超時"));
+            }, 5000);
+          });
+        } catch (extractError) {
+          console.log(
+            `⚠️ 提取 PDF 內容失敗: ${
+              extractError instanceof Error
+                ? extractError.message
+                : String(extractError)
+            }`
+          );
+          extractedContent = null;
+        }
       }
 
       res.json({
@@ -1164,9 +1314,11 @@ app.post(
   requireLogin,
   requireRole("teacher"),
   async (req, res) => {
-    const { title, startTime, duration = 60, description } = req.body;
+    const { title, startTime, duration = 60, description, courseId } = req.body;
 
-    console.log(`📹 教師 ${req.session.userId} 創建Zoom會議: ${title}`);
+    console.log(
+      `📹 教師 ${req.session.userId} 為課程 ${courseId} 創建Zoom會議: ${title}`
+    );
 
     if (!title || !startTime) {
       return res.status(400).json({
@@ -1187,6 +1339,7 @@ app.post(
         meetingId: Date.now().toString(),
         password: Math.random().toString(36).substring(2, 8),
         teacherId: req.session.userId,
+        courseId: courseId,
         created: new Date().toISOString(),
       };
 
@@ -1195,8 +1348,8 @@ app.post(
         const result = db
           .prepare(
             `
-        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, course_id, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
           )
           .run(
@@ -1207,6 +1360,7 @@ app.post(
             meeting.joinUrl,
             meeting.password,
             req.session.userId,
+            courseId,
             description
           );
 
@@ -1224,6 +1378,7 @@ app.post(
           join_url TEXT,
           password TEXT,
           teacher_id INTEGER,
+          course_id INTEGER,
           description TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -1232,8 +1387,8 @@ app.post(
         const result = db
           .prepare(
             `
-        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO zoom_meetings (meeting_id, title, start_time, duration, join_url, password, teacher_id, course_id, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
           )
           .run(
@@ -1244,6 +1399,7 @@ app.post(
             meeting.joinUrl,
             meeting.password,
             req.session.userId,
+            courseId,
             description
           );
 
@@ -1303,14 +1459,14 @@ app.get(
   requireRole("student"),
   (req, res) => {
     try {
-      // 獲取學生選修課程的教師創建的會議
+      // 獲取學生選修課程的會議（按course_id正確過濾）
       const meetings = db
         .prepare(
           `
       SELECT zm.*, u.username as teacher_name, c.name as course_name
       FROM zoom_meetings zm
       JOIN users u ON zm.teacher_id = u.id
-      JOIN courses c ON c.teacher_id = u.id
+      JOIN courses c ON c.id = zm.course_id
       JOIN enrollments e ON e.course_id = c.id
       WHERE e.student_id = ?
       AND datetime(zm.start_time) >= datetime('now', '-2 hours')
@@ -1319,11 +1475,20 @@ app.get(
         )
         .all(req.session.userId);
 
+      console.log(
+        `📹 學生 ${req.session.userId} 查詢會議，找到 ${meetings.length} 個`
+      );
+
       res.json({
         success: true,
         meetings: meetings,
       });
     } catch (error) {
+      console.log(
+        `⚠️ 查詢會議錯誤: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       res.json({
         success: true,
         meetings: [],
@@ -1343,14 +1508,35 @@ function generateQuestions(content: string, count: number) {
 
   if (extractedQuestions.length > 0) {
     console.log(`✅ 成功從內容中提取到 ${extractedQuestions.length} 個問題`);
-    return extractedQuestions;
+
+    // 隨機打亂問題順序
+    const shuffledQuestions = shuffleArray(extractedQuestions);
+
+    // 返回指定數量的問題
+    const selectedQuestions = shuffledQuestions.slice(
+      0,
+      Math.min(count, shuffledQuestions.length)
+    );
+    console.log(`🎲 隨機選擇了 ${selectedQuestions.length} 個問題`);
+
+    return selectedQuestions;
   }
 
   console.log("ℹ️ 內容中沒有找到問題，返回空陣列");
   return [];
 }
 
-// 從文件內容中提取實際問題的函數
+// 隨機打亂陣列的函數（Fisher-Yates 算法）
+function shuffleArray(array: any[]): any[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// 從文件內容中提取實際問題的函數，支援子問題（如3a, 3b）
 function extractQuestionsFromContent(content: string) {
   const questions: any[] = [];
   let questionId = 1;
@@ -1361,7 +1547,14 @@ function extractQuestionsFromContent(content: string) {
     return [];
   }
 
-  // 多種問題格式的正則表達式
+  // 首先嘗試提取帶子題的問題（例如：3) 主題 a) 選項1 b) 選項2）
+  const groupedQuestions = extractGroupedQuestions(content);
+  if (groupedQuestions.length > 0) {
+    console.log(`✅ 成功提取到 ${groupedQuestions.length} 個帶子題的問題組`);
+    return groupedQuestions;
+  }
+
+  // 然後嘗試提取一般格式的問題
   const questionPatterns = [
     // 匹配 "1. 問題內容？" 或 "1、問題內容？" 或 "一、問題內容？"
     /(?:^|\n)[\s]*(?:\d+[.、]|[一二三四五六七八九十]+[、.])\s*([^?\n]*\?[^?\n]*)/gm,
@@ -1376,13 +1569,16 @@ function extractQuestionsFromContent(content: string) {
   console.log("🔍 使用多種模式搜索問題...");
 
   questionPatterns.forEach((pattern, patternIndex) => {
+    console.log(`  📌 模式 ${patternIndex + 1}: 搜索中...`);
     const matches = content.matchAll(pattern);
+    let patternMatchCount = 0;
+
     for (const match of matches) {
       const questionText = match[1]?.trim();
       if (
         questionText &&
         questionText.length > 5 &&
-        questionText.length < 200
+        questionText.length < 300 // 增加長度限制，以容納更長的問題
       ) {
         // 清理問題文本
         const cleanedQuestion = questionText
@@ -1392,23 +1588,33 @@ function extractQuestionsFromContent(content: string) {
           .trim();
 
         if (cleanedQuestion.length > 5) {
+          // 檢測是否為多選題
+          const mcOptions = extractMultipleChoiceOptions(
+            content,
+            cleanedQuestion
+          );
+
           questions.push({
             id: questionId++,
-            type: "short-answer",
+            type: mcOptions.length > 0 ? "multiple-choice" : "short-answer",
             question: cleanedQuestion,
+            options: mcOptions,
             explanation: "這是從您的作業文件中提取的問題",
           });
 
+          patternMatchCount++;
           console.log(
-            `📝 提取到問題 ${questionId - 1}: ${cleanedQuestion.substring(
-              0,
-              50
-            )}...`
+            `    📝 找到問題: ${cleanedQuestion.substring(0, 40)}...`
           );
         }
       }
     }
+    console.log(
+      `  ✅ 模式 ${patternIndex + 1} 找到 ${patternMatchCount} 個問題`
+    );
   });
+
+  console.log(`📊 提取前去重：找到 ${questions.length} 個問題候選`);
 
   // 去重（基於問題內容的相似性）
   const uniqueQuestions: any[] = [];
@@ -1427,7 +1633,109 @@ function extractQuestionsFromContent(content: string) {
   }
 
   console.log(`✅ 最終提取到 ${uniqueQuestions.length} 個唯一問題`);
+  uniqueQuestions.forEach((q, idx) => {
+    console.log(`  ${idx + 1}. ${q.question.substring(0, 50)}...`);
+  });
+
   return uniqueQuestions;
+}
+
+// 提取帶子題的問題組（例如：3) 主題 ... a) 選項 b) 選項）
+function extractGroupedQuestions(content: string): any[] {
+  const groupedQuestions: any[] = [];
+  let questionId = 1;
+
+  // 匹配主題和子題的模式
+  // 例如：3) 這是主題
+  //      a) 第一個選項
+  //      b) 第二個選項
+  const mainQuestionPattern =
+    /(?:^|\n)[\s]*(\d+)\)\s*([^\n]+?)(?=\n\s*[a-z]\)|$)/gm;
+
+  let match;
+  while ((match = mainQuestionPattern.exec(content)) !== null) {
+    const mainNum = match[1];
+    const mainQuestion = match[2].trim();
+
+    // 在主題後查找子題
+    const startPos = match.index + match[0].length;
+    const nextMainQuestionPattern = new RegExp(
+      `\n\\s*${parseInt(mainNum) + 1}\\)`
+    );
+    const nextMainMatch = nextMainQuestionPattern.exec(
+      content.substring(startPos)
+    );
+    const endPos = nextMainMatch
+      ? startPos + nextMainMatch.index
+      : content.length;
+
+    const subQuestionText = content.substring(startPos, endPos);
+
+    // 提取子題
+    const subQuestions: any[] = [];
+    const subPattern = /\n\s*([a-z])\)\s*([^\n]+)/g;
+
+    let subMatch;
+    while ((subMatch = subPattern.exec(subQuestionText)) !== null) {
+      subQuestions.push({
+        letter: subMatch[1],
+        text: subMatch[2].trim(),
+      });
+    }
+
+    // 如果找到子題，則創建分組問題
+    if (subQuestions.length > 0) {
+      groupedQuestions.push({
+        id: questionId++,
+        type: "multiple-choice",
+        mainQuestion: mainQuestion,
+        subQuestions: subQuestions,
+        question: mainQuestion, // 保持向後相容性
+        options: subQuestions.map((sq) => sq.letter + ") " + sq.text),
+        explanation: "這是從您的作業文件中提取的分組問題",
+      });
+
+      console.log(
+        `📝 提取到分組問題 ${questionId - 1}: ${mainQuestion} (包含 ${
+          subQuestions.length
+        } 個子題)`
+      );
+    }
+  }
+
+  return groupedQuestions;
+}
+
+// 提取多選題選項 (a, b, c, d 或 A, B, C, D)
+function extractMultipleChoiceOptions(
+  content: string,
+  questionText: string
+): string[] {
+  // 在問題文本後查找選項
+  const questionIndex = content.indexOf(questionText);
+  if (questionIndex === -1) return [];
+
+  // 搜索範圍：問題後的100-500個字符
+  const searchStart = questionIndex + questionText.length;
+  const searchEnd = Math.min(searchStart + 500, content.length);
+  const searchText = content.substring(searchStart, searchEnd);
+
+  // 尋找 a), b), c), d) 或 A), B), C), D) 格式
+  const optionPattern = /\n\s*([a-dA-D])\)\s*([^\n]+)/g;
+  const options: string[] = [];
+
+  let match;
+  while ((match = optionPattern.exec(searchText)) !== null) {
+    const letter = match[1];
+    const optionText = match[2].trim();
+
+    if (optionText.length > 2 && optionText.length < 200) {
+      options.push(letter + ") " + optionText);
+    }
+  }
+
+  // 只有找到4個選項才認為是多選題
+  return options.length === 4 ? options : [];
 }
 
 // 簡單的文本相似度計算

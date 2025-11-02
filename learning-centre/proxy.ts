@@ -2,6 +2,7 @@ import { proxySchema } from "better-sqlite3-proxy";
 import { db } from "./db2";
 
 export type Enrollments = {
+  id: number;
   course_id: number;
   student_id: number;
 };
@@ -21,5 +22,5 @@ export type DBProxy = {
 
 export let proxy = proxySchema<DBProxy>(db, {
   courses: ["id", ["teacher_id", { field: "id", table: "teacher" }]],
-  enrollments: ["course_id", "student_id"],
+  enrollments: ["id"],
 });
