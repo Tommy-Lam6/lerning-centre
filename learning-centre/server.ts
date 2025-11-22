@@ -49,11 +49,35 @@ app.use(
   })
 );
 
-// 靜態檔案服務
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// 自訂上傳檔案路由 - 先於靜態檔案中間件，用來處理編碼問題
+app.get("/uploads/:filename", (req, res) => {
+  try {
+    const filename = req.params.filename;
+    // __dirname 指向 dist/，所以上去一層找 uploads
+    const uploadsDir = path.join(__dirname, "..", "uploads");
+    const filepath = path.join(uploadsDir, filename);
 
-// === 驗證資料庫初始化完成 ===
+    // 防止路徑穿越
+    if (!filepath.startsWith(path.resolve(uploadsDir))) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // 嘗試直接存取檔案
+    res.download(filepath, filename, (err: any) => {
+      if (err && err.code !== "ERR_HTTP_HEADERS_SENT") {
+        console.error(`檔案不存在: ${filepath}`);
+        res.status(404).json({ error: "檔案不存在", file: filename });
+      }
+    });
+  } catch (error) {
+    console.error("上傳檔案路由錯誤:", error);
+    res.status(500).json({ error: "伺服器錯誤" });
+  }
+});
+
+// 靜態檔案服務
+app.use(express.static(path.join(__dirname, "..", "public")));
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"))); // === 驗證資料庫初始化完成 ===
 try {
   console.log("\n🔍 驗證資料庫初始化狀態:");
 
@@ -1946,7 +1970,16 @@ function generateAIResponse(question: string, context?: string) {
 import { roomRoutes } from "./room";
 app.use(roomRoutes);
 
-const PORT = process.env.PORT || 6000;
+// === 全域 404 處理器 - 移除預設 CSP ===
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not Found",
+    path: req.path,
+    message: "請求的資源不存在",
+  });
+});
+
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
