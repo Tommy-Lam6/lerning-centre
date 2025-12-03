@@ -43,6 +43,6 @@ npm run server
 
 ## 👥 預設帳號
 
-- **管理員**: `admin` / `admin123`
+- **管理員**: `admin1` / `1234`
 - **教師**: `teacher1` / `teacher123`
 - **學生**: `student1` / `student123`
