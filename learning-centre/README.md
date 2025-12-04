@@ -47,9 +47,9 @@ bash start-server.sh
 
 ## 預設帳號
 
-- **管理員**: `admin` / `admin123`
-- **教師**: `teacher1` / `teacher123`
-- **學生**: `student1` / `student123`
+- **管理員**: `admin1` / `1234`
+- **教師**: `teacher1` / `1234`
+- **學生**: `student1` / `1234`
 
 ## 專案結構
 
